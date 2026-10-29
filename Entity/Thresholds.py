@@ -1,9 +1,8 @@
-from flask_sqlalchemy import SQLAlchemy
+from Entity import db
 from Enum.Variavel import Variavel
 from Enum.TipoLimiar import TipoLimiar 
 from Enum.Estacao import Estacao
 
-db = SQLAlchemy()
 
 class Thresholds(db.Model):
     __tablename__ = "Thresholds"

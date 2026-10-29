@@ -1,5 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
-db = SQLAlchemy()
+from Entity import db
+
 
 class RegistrosClimaticos(db.Model):
         __tablename__ = "RegistrosClimaticos"
