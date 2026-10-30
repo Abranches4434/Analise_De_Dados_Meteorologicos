@@ -1,7 +1,26 @@
 from flask import Blueprint, request
-from Controller.LocalidadesController import *
-from Controller.RegistrosClimaticosController import *
-from Controller.ThresholdsController import *
+
+from Controller.LocalidadesController import (
+    selecionarTodasLocalidades,
+    selecionarLocalidadePeloID,
+    inserirLocalidade,
+    alterarLocalidade,
+    deletarLocalidadePeloId,
+)
+from Controller.RegistrosClimaticosController import (
+    selecionarTodosRegistros,
+    selecionarRegistroPeloID,
+    inserirRegistro,
+    alterarRegistro,
+    deletarRegistroPeloId,
+)
+from Controller.ThresholdsController import (
+    selecionarTodasThresholds,
+    selecionarThresholdPeloID,
+    inserirThreshold,
+    alterarThreshold,
+    deletarThresholdPeloId,
+)
 
 #============ Definindo Blueprints de cada Controller ============
 
