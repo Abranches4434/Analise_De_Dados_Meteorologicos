@@ -80,6 +80,10 @@ def alterarLocalidade(Localidade) -> LocalidadesResponseDTO:
         return jsonify({
             "erro": str(error)
         }), 404
+    except ElementoCadastrado as error:
+        return jsonify({
+            "erro": str(error)
+        }), 409
     except Exception as error:
         return jsonify({
             "erro": str(error)
