@@ -49,9 +49,10 @@ def RotaInserirRegistro():
         objeto = request.get_json()
         return inserirRegistro(objeto)
 
-@registros_bp.route("/registros", methods = ["PUT"])
-def RotaAlterarRegistro():
+@registros_bp.route("/registros/<int:id>", methods = ["PUT"])
+def RotaAlterarRegistro(id):
         objeto = request.get_json()
+        objeto["IDRegistrosClimaticos"] = id
         return alterarRegistro(objeto)
 
 @registros_bp.route("/registros/<int:id>", methods = ["DELETE"])
