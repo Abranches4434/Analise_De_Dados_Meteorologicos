@@ -1,3 +1,4 @@
+from decimal import Decimal, ROUND_HALF_UP
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
@@ -5,6 +6,12 @@ from Enum.Estado import Estado
 
 if TYPE_CHECKING:
     from Entity.Localidades import Localidades
+
+
+def normalizarCoordenada(valor: float) -> Decimal:
+    return Decimal(str(valor)).quantize(
+        Decimal("0.000001"), rounding=ROUND_HALF_UP
+    )
 
 
 class LocalidadesRequestDTO(BaseModel):
@@ -32,8 +39,8 @@ class LocalidadesRequestDTO(BaseModel):
         entity.Nome = self.Nome
         entity.Cidade = self.Cidade
         entity.Estado = self.Estado
-        entity.Latitude = self.Latitude
-        entity.Longitude = self.Longitude
+        entity.Latitude = normalizarCoordenada(self.Latitude)
+        entity.Longitude = normalizarCoordenada(self.Longitude)
         entity.Ativo = self.Ativo
 
         return entity
