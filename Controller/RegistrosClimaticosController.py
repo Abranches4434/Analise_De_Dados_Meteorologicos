@@ -1,30 +1,105 @@
 from flask import jsonify
+from pydantic import ValidationError
+
 from DTOs.RegistrosClimaticosRequestDTO import RegistrosClimaticosRequestDTO
-from DTOs.RegistrosClimaticosResponseDTO import RegistrosClimaticosReponseDTO
+from DTOs.RegistrosClimaticosResponseDTO import RegistrosClimaticosResponseDTO
+from Exception.exception import (
+    ElementoNaoEncontradoException,
+    ElementoCadastrado,
+)
+from Service.RegistrosClimaticosService import (
+    selecionarTodos,
+    selecionarPeloId,
+    inserir,
+    alterar,
+    excluir,
+)
 
-##COLOCAR OS REQUESTS AQUI
 
-def inserirRegistro(Registro : RegistrosClimaticosRequestDTO) -> RegistrosClimaticosReponseDTO:
-    return jsonify({
-        "mensagem" : "Criando Registro"
-    }), 201
+def _toDTO(dados) -> RegistrosClimaticosRequestDTO:
+    if isinstance(dados, RegistrosClimaticosRequestDTO):
+        return dados
 
-def selecionarTodosRegistros() -> RegistrosClimaticosReponseDTO:
-    return jsonify({
-        "mensagem" : "Selecionando todos os Registros"
-    }), 200
+    return RegistrosClimaticosRequestDTO(**dados)
 
-def selecionarRegistroPeloID(id : int) -> RegistrosClimaticosReponseDTO:
-    return jsonify({
-        "mensagem" : f"Selecionando Registro de Id: {id}"
-    }), 200
 
-def alterarRegistro(Registro : RegistrosClimaticosRequestDTO) -> RegistrosClimaticosReponseDTO:
-    return jsonify({
-        "mensagem" : "Alterando registro"
-    }), 200
+def inserirRegistro(Registro) -> RegistrosClimaticosResponseDTO:
 
-def deletarRegistroPeloId(id : int) -> RegistrosClimaticosReponseDTO:
-    return jsonify({
-        "mensagem" : f"Deletando Registro com Id: {id}"
-    }), 204
+    try:
+        dto = _toDTO(Registro)
+        return jsonify(inserir(dto).model_dump(mode="json")), 201
+    except ValidationError as error:
+        return jsonify({
+            "erro": str(error)
+        }), 400
+    except ElementoNaoEncontradoException as error:
+        return jsonify({
+            "erro": str(error)
+        }), 404
+    except ElementoCadastrado as error:
+        return jsonify({
+            "erro": str(error)
+        }), 409
+    except Exception as error:
+        return jsonify({
+            "erro": str(error)
+        }), 500
+
+def selecionarTodosRegistros() -> list[RegistrosClimaticosResponseDTO]:
+
+    try:
+        dtos = selecionarTodos()
+        return jsonify([dto.model_dump(mode="json") for dto in dtos]), 200
+    except Exception as error:
+        return jsonify({
+            "erro": str(error)
+        }), 500
+
+def selecionarRegistroPeloID(id : int) -> RegistrosClimaticosResponseDTO:
+
+    try:
+        return jsonify(selecionarPeloId(id).model_dump(mode="json")), 200
+    except ElementoNaoEncontradoException as error:
+        return jsonify({
+            "erro": str(error)
+        }), 404
+    except Exception as error:
+        return jsonify({
+            "erro": str(error)
+        }), 500
+
+def alterarRegistro(Registro) -> RegistrosClimaticosResponseDTO:
+
+    try:
+        dto = _toDTO(Registro)
+        return jsonify(alterar(dto).model_dump(mode="json")), 200
+    except ValidationError as error:
+        return jsonify({
+            "erro": str(error)
+        }), 400
+    except ElementoNaoEncontradoException as error:
+        return jsonify({
+            "erro": str(error)
+        }), 404
+    except ElementoCadastrado as error:
+        return jsonify({
+            "erro": str(error)
+        }), 409
+    except Exception as error:
+        return jsonify({
+            "erro": str(error)
+        }), 500
+
+def deletarRegistroPeloId(id : int) -> RegistrosClimaticosResponseDTO:
+
+    try:
+        excluir(id)
+        return "", 204
+    except ElementoNaoEncontradoException as error:
+        return jsonify({
+            "erro": str(error)
+        }), 404
+    except Exception as error:
+        return jsonify({
+            "erro": str(error)
+        }), 500
