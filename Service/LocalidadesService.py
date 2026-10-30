@@ -1,5 +1,5 @@
 from DTOs.LocalidadesResponseDTO import LocalidadesResponseDTO
-from DTOs.LocalidadesRequestDTO import LocalidadesRequestDTO
+from DTOs.LocalidadesRequestDTO import LocalidadesRequestDTO, normalizarCoordenada
 from Repository.LocalidadesRepository import (
     selecionarTodasLocalidades,
     buscarLocalidadePorId,
@@ -35,7 +35,10 @@ def selecionarPeloId(id: int) -> LocalidadesResponseDTO:
 
 def inserir(Localidade: LocalidadesRequestDTO) -> LocalidadesResponseDTO:
 
-    obj = selecionarPorLatitudeELongitude(Localidade.Latitude, Localidade.Longitude)
+    latitude = normalizarCoordenada(Localidade.Latitude)
+    longitude = normalizarCoordenada(Localidade.Longitude)
+
+    obj = selecionarPorLatitudeELongitude(latitude, longitude)
 
     if obj is not None:
         raise ElementoCadastrado("Localidade já cadastrada no sistema!")
@@ -49,6 +52,14 @@ def alterar(Localidade: LocalidadesRequestDTO) -> LocalidadesResponseDTO:
 
     if not existePeloId(Localidade.IDLocalidade):
         raise ElementoNaoEncontradoException(f"Localidade com o id: {Localidade.IDLocalidade} não foi encontrada!")
+
+    latitude = normalizarCoordenada(Localidade.Latitude)
+    longitude = normalizarCoordenada(Localidade.Longitude)
+
+    obj = selecionarPorLatitudeELongitude(latitude, longitude)
+
+    if obj is not None and obj.IDLocalidade != Localidade.IDLocalidade:
+        raise ElementoCadastrado("Já existe outra localidade cadastrada com essa latitude e longitude!")
 
     return LocalidadesResponseDTO.EntityToDTO(alterarLocalidade(Localidade.dtoToEntity()))
 
