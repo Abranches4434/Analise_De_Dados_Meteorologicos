@@ -74,9 +74,10 @@ def RotaInserirThreshold():
         objeto = request.get_json()
         return inserirThreshold(objeto)
 
-@thresholds_bp.route("/thresholds", methods = ["PUT"])
-def RotaAlterarThreshold():
+@thresholds_bp.route("/thresholds/<int:id>", methods = ["PUT"])
+def RotaAlterarThreshold(id):
         objeto = request.get_json()
+        objeto["IDThreshold"] = id
         return alterarThreshold(objeto)
 
 @thresholds_bp.route("/thresholds/<int:id>", methods = ["DELETE"])
