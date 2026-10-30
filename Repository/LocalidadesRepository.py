@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from Entity.Localidades import Localidades
 from Entity.RegistrosClimaticos import RegistrosClimaticos
 from Entity.Thresholds import Thresholds
@@ -10,7 +12,7 @@ def selecionarTodasLocalidades() -> list[Localidades]:
 def buscarLocalidadePorId(id):
     return db.session.get(Localidades, id)
 
-def selecionarPorLatitudeELongitude(Latitude: float, Longitude: float) -> Localidades:
+def selecionarPorLatitudeELongitude(Latitude: Decimal, Longitude: Decimal) -> Localidades:
     
     return db.session.execute(db.select(Localidades).where(Localidades.Latitude == Latitude, 
                                                                Localidades.Longitude == Longitude)).scalars().first()
