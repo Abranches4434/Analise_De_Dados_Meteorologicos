@@ -1,7 +1,8 @@
-import os
 import unittest
 
-os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+from support import preparar_ambiente
+
+preparar_ambiente()
 
 from app import app
 

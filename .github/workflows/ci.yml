@@ -9,7 +9,22 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DATABASE_URL: sqlite:///:memory:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/analiseMeteorologica
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: analiseMeteorologica
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d analiseMeteorologica"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout
@@ -28,8 +43,12 @@ jobs:
 
       - name: Validar sintaxe
         run: |
-          python -m compileall -q Controller DTOs Entity Enum Exception Repository Routes Service app.py tests
+          python -m compileall -q Controller DTOs Entity Enum Exception Repository Routes Service app.py seed.py tests
 
-      - name: Smoke test de inicialização
+      - name: Validar Docker Compose
+        run: |
+          docker compose config
+
+      - name: Testes de inicialização e integração
         run: |
           python -m unittest discover -s tests -v
