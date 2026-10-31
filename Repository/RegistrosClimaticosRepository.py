@@ -10,6 +10,38 @@ class RegistrosClimaticosRepository(BaseRepository):
     def __init__(self):
         super().__init__(RegistrosClimaticos)
 
+    def selecionar_por_filtros(
+        self,
+        data_inicio: date | None = None,
+        data_fim: date | None = None,
+        fk_localidade: int | None = None,
+        incluir_inativos: bool = False,
+    ) -> list[RegistrosClimaticos]:
+        consulta = db.select(RegistrosClimaticos)
+
+        if not incluir_inativos:
+            consulta = consulta.where(RegistrosClimaticos.Ativo.is_(True))
+
+        if data_inicio is not None:
+            consulta = consulta.where(
+                RegistrosClimaticos.Data >= data_inicio
+            )
+
+        if data_fim is not None:
+            consulta = consulta.where(RegistrosClimaticos.Data <= data_fim)
+
+        if fk_localidade is not None:
+            consulta = consulta.where(
+                RegistrosClimaticos.FKLocalidade == fk_localidade
+            )
+
+        consulta = consulta.order_by(
+            RegistrosClimaticos.Data,
+            RegistrosClimaticos.Hora,
+        )
+
+        return db.session.execute(consulta).scalars().all()
+
     def selecionar_por_data_hora_localidade(
         self,
         data: date,

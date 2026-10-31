@@ -30,12 +30,37 @@ class RegistrosClimaticosService(BaseService):
     def selecionar_todos(
         self,
         incluir_inativos: bool = False,
+        data_inicio=None,
+        data_fim=None,
+        localidade_id: int | None = None,
     ) -> list[RegistrosClimaticosResponseDTO]:
+        if (
+            data_inicio is not None
+            and data_fim is not None
+            and data_inicio > data_fim
+        ):
+            raise ValueError(
+                "A data inicial não pode ser posterior à data final!"
+            )
+
+        if (
+            localidade_id is not None
+            and not self.localidades_repositorio.existe_por_id(localidade_id)
+        ):
+            raise ElementoNaoEncontradoException(
+                f"Localidade com o id: {localidade_id} não foi encontrada!"
+            )
+
+        registros = self.repositorio.selecionar_por_filtros(
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            fk_localidade=localidade_id,
+            incluir_inativos=incluir_inativos,
+        )
+
         return [
             RegistrosClimaticosResponseDTO.EntityToDTO(registro)
-            for registro in self.repositorio.selecionar_todos(
-                incluir_inativos
-            )
+            for registro in registros
         ]
 
     def selecionar_por_id(self, id: int) -> RegistrosClimaticosResponseDTO:

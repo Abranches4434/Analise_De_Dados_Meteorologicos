@@ -11,6 +11,20 @@ class ThresholdsRepository(BaseRepository):
     def __init__(self):
         super().__init__(Thresholds)
 
+    def selecionar_por_localidade(
+        self,
+        fk_localidade: int,
+        incluir_inativos: bool = False,
+    ) -> list[Thresholds]:
+        consulta = db.select(Thresholds).where(
+            Thresholds.FKLocalidade == fk_localidade
+        )
+
+        if not incluir_inativos:
+            consulta = consulta.where(Thresholds.Ativo.is_(True))
+
+        return db.session.execute(consulta).scalars().all()
+
     def selecionar_por_chave(
         self,
         fk_localidade: int,

@@ -15,8 +15,16 @@ class RegistrosClimaticosController(BaseController):
     def selecionar_todos(
         self,
         incluir_inativos: bool = False,
+        data_inicio=None,
+        data_fim=None,
+        localidade_id: int | None = None,
     ) -> list[RegistrosClimaticosResponseDTO]:
-        return self.servico.selecionar_todos(incluir_inativos)
+        return self.servico.selecionar_todos(
+            incluir_inativos=incluir_inativos,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            localidade_id=localidade_id,
+        )
 
     def selecionar_por_id(self, id: int) -> RegistrosClimaticosResponseDTO:
         return self.servico.selecionar_por_id(id)

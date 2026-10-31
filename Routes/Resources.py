@@ -1,6 +1,7 @@
 from flask import request
 from flask_restful import Resource
 
+from Controller.AnaliseController import AnaliseController
 from Controller.LocalidadesController import LocalidadesController
 from Controller.RegistrosClimaticosController import (
     RegistrosClimaticosController,
@@ -61,7 +62,10 @@ class RegistrosResource(BaseResource):
     def get(self):
         return self._executar(
             lambda: self._controller.selecionar_todos(
-                self._incluir_inativos()
+                incluir_inativos=self._incluir_inativos(),
+                data_inicio=self._data("data_inicio"),
+                data_fim=self._data("data_fim"),
+                localidade_id=self._inteiro("localidade_id"),
             )
         )
 
@@ -138,6 +142,85 @@ class ThresholdResource(BaseResource):
         return self._executar(
             lambda: self._controller.excluir(id),
             status=204,
+        )
+
+
+class EstatisticasResource(BaseResource):
+
+    def __init__(self):
+        self._controller = AnaliseController()
+
+    def get(self):
+        return self._executar(
+            lambda: self._controller.estatisticas(
+                data_inicio=self._data("data_inicio"),
+                data_fim=self._data("data_fim"),
+                localidade_id=self._inteiro("localidade_id"),
+            )
+        )
+
+
+class ComparacaoResource(BaseResource):
+
+    def __init__(self):
+        self._controller = AnaliseController()
+
+    def get(self):
+        return self._executar(
+            lambda: self._controller.comparar(
+                data_inicio=self._data("data_inicio"),
+                data_fim=self._data("data_fim"),
+                localidade_ids=self._lista_inteiros("localidade_ids"),
+            )
+        )
+
+
+class EventosExtremosResource(BaseResource):
+
+    def __init__(self):
+        self._controller = AnaliseController()
+
+    def get(self):
+        return self._executar(
+            lambda: self._controller.eventos_extremos(
+                data_inicio=self._data("data_inicio"),
+                data_fim=self._data("data_fim"),
+                localidade_id=self._inteiro("localidade_id"),
+            )
+        )
+
+
+class SazonalidadeResource(BaseResource):
+
+    def __init__(self):
+        self._controller = AnaliseController()
+
+    def get(self):
+        return self._executar(
+            lambda: self._controller.sazonalidade(
+                data_inicio=self._data("data_inicio"),
+                data_fim=self._data("data_fim"),
+                localidade_id=self._inteiro("localidade_id"),
+                agrupamento=request.args.get("agrupamento", "mes"),
+            )
+        )
+
+
+class ExportacaoResource(BaseResource):
+
+    def __init__(self):
+        self._controller = AnaliseController()
+
+    def get(self, tipo: str):
+        return self._executar_arquivo(
+            lambda: self._controller.exportar(
+                tipo=tipo,
+                data_inicio=self._data("data_inicio"),
+                data_fim=self._data("data_fim"),
+                localidade_id=self._inteiro("localidade_id"),
+                localidade_ids=self._lista_inteiros("localidade_ids"),
+                agrupamento=request.args.get("agrupamento", "mes"),
+            )
         )
 
 

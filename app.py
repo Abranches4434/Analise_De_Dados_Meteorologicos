@@ -68,6 +68,22 @@ def init_db():
     print("Tabelas criadas/verificadas com sucesso.")
 
 
+@app.cli.command("seed-demo")
+def seed_demo():
+    """Cria localidades, registros e thresholds de demonstração."""
+    from seed import popular_dados_demo
+
+    with app.app_context():
+        resumo = popular_dados_demo()
+
+    print(resumo["mensagem"])
+
+    if resumo.get("criado"):
+        print(f"Localidades: {resumo['localidades']}")
+        print(f"Registros: {resumo['registros']}")
+        print(f"Thresholds: {resumo['thresholds']}")
+
+
 #======== Inicializando API ========
 
 if __name__ == "__main__":

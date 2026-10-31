@@ -32,6 +32,11 @@ class TestInicializacaoAPI(unittest.TestCase):
                 "/registros/<int:id>",
                 "/thresholds",
                 "/thresholds/<int:id>",
+                "/analises/estatisticas",
+                "/analises/comparacao",
+                "/analises/eventos-extremos",
+                "/analises/sazonalidade",
+                "/exportacoes/<string:tipo>",
             },
         )
 
@@ -42,9 +47,15 @@ class TestInicializacaoAPI(unittest.TestCase):
         self.assertEqual(rotas["/registros/<int:id>"], {"GET", "PUT", "DELETE"})
         self.assertEqual(rotas["/thresholds"], {"GET", "POST"})
         self.assertEqual(rotas["/thresholds/<int:id>"], {"GET", "PUT", "DELETE"})
+        self.assertEqual(rotas["/analises/estatisticas"], {"GET"})
+        self.assertEqual(rotas["/analises/comparacao"], {"GET"})
+        self.assertEqual(rotas["/analises/eventos-extremos"], {"GET"})
+        self.assertEqual(rotas["/analises/sazonalidade"], {"GET"})
+        self.assertEqual(rotas["/exportacoes/<string:tipo>"], {"GET"})
 
-    def test_comando_init_db_registrado(self):
+    def test_comandos_de_banco_registrados(self):
         self.assertIn("init-db", app.cli.commands)
+        self.assertIn("seed-demo", app.cli.commands)
 
     def test_health(self):
         resposta = app.test_client().get("/health")

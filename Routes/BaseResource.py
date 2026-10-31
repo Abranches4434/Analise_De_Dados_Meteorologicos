@@ -1,4 +1,6 @@
-from flask import request
+from datetime import date
+
+from flask import Response, request
 from flask_restful import Resource
 from pydantic import ValidationError
 
@@ -16,6 +18,45 @@ class BaseResource(Resource):
         valor = str(request.args.get("incluir_inativos", "")).lower()
         return valor in {"1", "true", "sim", "yes"}
 
+    def _data(self, nome: str) -> date | None:
+        valor = request.args.get(nome)
+
+        if not valor:
+            return None
+
+        try:
+            return date.fromisoformat(valor)
+        except ValueError as erro:
+            raise ValueError(
+                f"A data '{nome}' é inválida. Use o formato AAAA-MM-DD."
+            ) from erro
+
+    def _inteiro(self, nome: str) -> int | None:
+        valor = request.args.get(nome)
+
+        if valor in (None, ""):
+            return None
+
+        try:
+            return int(valor)
+        except ValueError as erro:
+            raise ValueError(
+                f"O parâmetro '{nome}' deve ser um número inteiro."
+            ) from erro
+
+    def _lista_inteiros(self, nome: str) -> list[int]:
+        valor = request.args.get(nome)
+
+        if not valor:
+            return []
+
+        try:
+            return [int(item.strip()) for item in valor.split(",") if item.strip()]
+        except ValueError as erro:
+            raise ValueError(
+                f"O parâmetro '{nome}' deve conter números separados por vírgula."
+            ) from erro
+
     def _executar(self, acao, status: int = 200):
         try:
             resultado = acao()
@@ -32,7 +73,7 @@ class BaseResource(Resource):
                 return resultado.model_dump(mode="json"), status
 
             return resultado, status
-        except ValidationError as erro:
+        except (ValidationError, ValueError) as erro:
             return {"erro": str(erro)}, 400
         except ElementoNaoEncontradoException as erro:
             return {"erro": str(erro)}, 404
@@ -40,5 +81,24 @@ class BaseResource(Resource):
             return {"erro": str(erro)}, 409
         except ElementoComDependenciasException as erro:
             return {"erro": str(erro)}, 409
+        except Exception as erro:
+            return {"erro": str(erro)}, 500
+
+    def _executar_arquivo(self, acao):
+        try:
+            nome_arquivo, conteudo = acao()
+            return Response(
+                conteudo,
+                mimetype="text/csv; charset=utf-8",
+                headers={
+                    "Content-Disposition": (
+                        f"attachment; filename={nome_arquivo}"
+                    )
+                },
+            )
+        except (ValidationError, ValueError) as erro:
+            return {"erro": str(erro)}, 400
+        except ElementoNaoEncontradoException as erro:
+            return {"erro": str(erro)}, 404
         except Exception as erro:
             return {"erro": str(erro)}, 500
