@@ -1,72 +1,53 @@
 from decimal import Decimal
 
+from Entity import db
 from Entity.Localidades import Localidades
 from Entity.RegistrosClimaticos import RegistrosClimaticos
 from Entity.Thresholds import Thresholds
-from Entity import db
+from Repository.BaseRepository import BaseRepository
 
 
-def selecionarTodasLocalidades(incluirInativos: bool = False) -> list[Localidades]:
-    consulta = db.select(Localidades)
+class LocalidadesRepository(BaseRepository):
 
-    if not incluirInativos:
-        consulta = consulta.where(Localidades.Ativo.is_(True))
+    def __init__(self):
+        super().__init__(Localidades)
 
-    return db.session.execute(consulta).scalars().all()
+    def selecionar_por_coordenadas(
+        self,
+        latitude: Decimal,
+        longitude: Decimal,
+    ) -> Localidades | None:
+        return db.session.execute(
+            db.select(Localidades).where(
+                Localidades.Latitude == latitude,
+                Localidades.Longitude == longitude,
+            )
+        ).scalars().first()
 
-def buscarLocalidadePorId(id):
-    return db.session.get(Localidades, id)
+    def alterar(self, localidade: Localidades) -> Localidades | None:
+        localidade_atual = self.buscar_por_id(localidade.IDLocalidade)
 
-def selecionarPorLatitudeELongitude(Latitude: Decimal, Longitude: Decimal) -> Localidades:
-    
-    return db.session.execute(db.select(Localidades).where(Localidades.Latitude == Latitude, 
-                                                               Localidades.Longitude == Longitude)).scalars().first()
+        if localidade_atual is not None:
+            localidade_atual.Nome = localidade.Nome
+            localidade_atual.Cidade = localidade.Cidade
+            localidade_atual.Estado = localidade.Estado
+            localidade_atual.Latitude = localidade.Latitude
+            localidade_atual.Longitude = localidade.Longitude
+            localidade_atual.Ativo = localidade.Ativo
+            db.session.commit()
 
-def inserirLocalidade(Localidade : Localidades):
-    db.session.add(Localidade)
-    db.session.commit()
-    db.session.refresh(Localidade)
-    return Localidade
+        return localidade_atual
 
-def alterarLocalidade(Localidade : Localidades) -> Localidades:
-    loc = db.session.get(Localidades, Localidade.IDLocalidade)
+    def existe_dependencia(self, id: int) -> bool:
+        possui_registro = db.session.execute(
+            db.select(
+                db.exists().where(RegistrosClimaticos.FKLocalidade == id)
+            )
+        ).scalar()
+        possui_threshold = db.session.execute(
+            db.select(
+                db.exists().where(Thresholds.FKLocalidade == id)
+            )
+        ).scalar()
 
-
-    if loc is not None: 
-        loc.Nome = Localidade.Nome
-        loc.Cidade = Localidade.Cidade
-        loc.Estado = Localidade.Estado
-        loc.Latitude = Localidade.Latitude
-        loc.Longitude = Localidade.Longitude
-        loc.Ativo = Localidade.Ativo
-
-        db.session.commit()
-
-    return loc
-
-def deletarLocalidade(id):
-    loc = db.session.get(Localidades, id)
-
-    if loc is not None:
-        loc.Ativo = False
-        db.session.commit()
-
-
-def existePeloId(id: int) -> bool:
-    return bool(db.session.execute(db.select(db.exists().where(Localidades.IDLocalidade == id))).scalar())
-
-def existeAtivoPeloId(id: int) -> bool:
-    return bool(db.session.execute(
-        db.select(db.exists().where(
-            Localidades.IDLocalidade == id,
-            Localidades.Ativo.is_(True),
-        ))
-    ).scalar())
-
-def existeDependencia(id: int) -> bool:
-    possuiRegistro = db.session.execute(
-        db.select(db.exists().where(RegistrosClimaticos.FKLocalidade == id))).scalar()
-    possuiThreshold = db.session.execute(
-        db.select(db.exists().where(Thresholds.FKLocalidade == id))).scalar()
-
-    return bool(possuiRegistro or possuiThreshold)
+        return bool(possui_registro or possui_threshold)

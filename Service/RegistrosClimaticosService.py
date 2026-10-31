@@ -1,77 +1,125 @@
 from DTOs.RegistrosClimaticosRequestDTO import RegistrosClimaticosRequestDTO
 from DTOs.RegistrosClimaticosResponseDTO import RegistrosClimaticosResponseDTO
-from Repository.RegistrosClimaticosRepository import (
-    selecionarTodosRegistrosClimaticos,
-    buscarRegistrosClimaticosPorId,
-    selecionarPorDataHoraELocalidade,
-    inserirRegistrosClimaticos,
-    alterarRegistrosClimaticos,
-    deletarRegistrosClimaticos,
-    existePeloId,
-)
-from Repository.LocalidadesRepository import existeAtivoPeloId as existeLocalidadeAtiva
 from Exception.exception import (
-    ElementoNaoEncontradoException,
     ElementoCadastrado,
+    ElementoNaoEncontradoException,
 )
+from Repository.LocalidadesRepository import LocalidadesRepository
+from Repository.RegistrosClimaticosRepository import (
+    RegistrosClimaticosRepository,
+)
+from Service.BaseService import BaseService
 
 
-def selecionarTodos(incluirInativos: bool = False) -> list[RegistrosClimaticosResponseDTO]:
+class RegistrosClimaticosService(BaseService):
 
-    dtoList = [RegistrosClimaticosResponseDTO.EntityToDTO(registro) for registro
-               in selecionarTodosRegistrosClimaticos(incluirInativos)]
+    def __init__(
+        self,
+        repositorio: RegistrosClimaticosRepository | None = None,
+        localidades_repositorio: LocalidadesRepository | None = None,
+    ):
+        super().__init__(repositorio or RegistrosClimaticosRepository())
+        self._localidades_repositorio = (
+            localidades_repositorio or LocalidadesRepository()
+        )
 
-    return dtoList
+    @property
+    def localidades_repositorio(self) -> LocalidadesRepository:
+        return self._localidades_repositorio
 
-def selecionarPeloId(id: int) -> RegistrosClimaticosResponseDTO:
+    def selecionar_todos(
+        self,
+        incluir_inativos: bool = False,
+    ) -> list[RegistrosClimaticosResponseDTO]:
+        return [
+            RegistrosClimaticosResponseDTO.EntityToDTO(registro)
+            for registro in self.repositorio.selecionar_todos(
+                incluir_inativos
+            )
+        ]
 
-    obj = buscarRegistrosClimaticosPorId(id)
+    def selecionar_por_id(self, id: int) -> RegistrosClimaticosResponseDTO:
+        registro = self.repositorio.buscar_por_id(id)
 
-    if obj is None:
-        raise ElementoNaoEncontradoException(f"Registro com o id: {id} não foi encontrado")
+        if registro is None:
+            raise ElementoNaoEncontradoException(
+                f"Registro com o id: {id} não foi encontrado"
+            )
 
-    return RegistrosClimaticosResponseDTO.EntityToDTO(obj)
+        return RegistrosClimaticosResponseDTO.EntityToDTO(registro)
 
-def inserir(Registro: RegistrosClimaticosRequestDTO) -> RegistrosClimaticosResponseDTO:
+    def inserir(
+        self,
+        registro: RegistrosClimaticosRequestDTO,
+    ) -> RegistrosClimaticosResponseDTO:
+        if not self.localidades_repositorio.existe_ativo_por_id(
+            registro.FKLocalidade
+        ):
+            raise ElementoNaoEncontradoException(
+                f"Localidade ativa com o id: {registro.FKLocalidade} não foi encontrada!"
+            )
 
-    if not existeLocalidadeAtiva(Registro.FKLocalidade):
-        raise ElementoNaoEncontradoException(
-            f"Localidade ativa com o id: {Registro.FKLocalidade} não foi encontrada!")
+        existente = self.repositorio.selecionar_por_data_hora_localidade(
+            registro.Data,
+            registro.Hora,
+            registro.FKLocalidade,
+        )
 
-    obj = selecionarPorDataHoraELocalidade(Registro.Data, Registro.Hora, Registro.FKLocalidade)
+        if existente is not None:
+            raise ElementoCadastrado(
+                "Já existe um registro para essa data, hora e localidade!"
+            )
 
-    if obj is not None:
-        raise ElementoCadastrado(
-            "Já existe um registro para essa data, hora e localidade!")
+        return RegistrosClimaticosResponseDTO.EntityToDTO(
+            self.repositorio.inserir(registro.dtoToEntity())
+        )
 
-    return RegistrosClimaticosResponseDTO.EntityToDTO(
-        inserirRegistrosClimaticos(Registro.dtoToEntity()))
+    def alterar(
+        self,
+        registro: RegistrosClimaticosRequestDTO,
+    ) -> RegistrosClimaticosResponseDTO:
+        if registro.IDRegistrosClimaticos is None:
+            raise ElementoNaoEncontradoException(
+                "O id do registro deve ser informado!"
+            )
 
-def alterar(Registro: RegistrosClimaticosRequestDTO) -> RegistrosClimaticosResponseDTO:
+        if not self.repositorio.existe_por_id(
+            registro.IDRegistrosClimaticos
+        ):
+            raise ElementoNaoEncontradoException(
+                f"Registro com o id: {registro.IDRegistrosClimaticos} não foi encontrado!"
+            )
 
-    if Registro.IDRegistrosClimaticos is None:
-        raise ElementoNaoEncontradoException("O id do registro deve ser informado!")
+        if not self.localidades_repositorio.existe_ativo_por_id(
+            registro.FKLocalidade
+        ):
+            raise ElementoNaoEncontradoException(
+                f"Localidade ativa com o id: {registro.FKLocalidade} não foi encontrada!"
+            )
 
-    if not existePeloId(Registro.IDRegistrosClimaticos):
-        raise ElementoNaoEncontradoException(
-            f"Registro com o id: {Registro.IDRegistrosClimaticos} não foi encontrado!")
+        existente = self.repositorio.selecionar_por_data_hora_localidade(
+            registro.Data,
+            registro.Hora,
+            registro.FKLocalidade,
+        )
 
-    if not existeLocalidadeAtiva(Registro.FKLocalidade):
-        raise ElementoNaoEncontradoException(
-            f"Localidade ativa com o id: {Registro.FKLocalidade} não foi encontrada!")
+        if (
+            existente is not None
+            and existente.IDRegistrosClimaticos
+            != registro.IDRegistrosClimaticos
+        ):
+            raise ElementoCadastrado(
+                "Já existe um registro para essa data, hora e localidade!"
+            )
 
-    obj = selecionarPorDataHoraELocalidade(Registro.Data, Registro.Hora, Registro.FKLocalidade)
+        return RegistrosClimaticosResponseDTO.EntityToDTO(
+            self.repositorio.alterar(registro.dtoToEntity())
+        )
 
-    if obj is not None and obj.IDRegistrosClimaticos != Registro.IDRegistrosClimaticos:
-        raise ElementoCadastrado(
-            "Já existe um registro para essa data, hora e localidade!")
+    def excluir(self, id: int):
+        if not self.repositorio.existe_por_id(id):
+            raise ElementoNaoEncontradoException(
+                f"Registro com o id: {id} não foi encontrado!"
+            )
 
-    return RegistrosClimaticosResponseDTO.EntityToDTO(
-        alterarRegistrosClimaticos(Registro.dtoToEntity()))
-
-def excluir(id: int):
-
-    if not existePeloId(id):
-        raise ElementoNaoEncontradoException(f"Registro com o id: {id} não foi encontrado!")
-
-    deletarRegistrosClimaticos(id)
+        self.repositorio.inativar(id)

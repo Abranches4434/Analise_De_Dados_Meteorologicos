@@ -1,62 +1,46 @@
 from datetime import date, time
 
-from Entity.RegistrosClimaticos import RegistrosClimaticos
 from Entity import db
+from Entity.RegistrosClimaticos import RegistrosClimaticos
+from Repository.BaseRepository import BaseRepository
 
 
-def selecionarTodosRegistrosClimaticos(incluirInativos: bool = False) -> list[RegistrosClimaticos]:
-    consulta = db.select(RegistrosClimaticos)
+class RegistrosClimaticosRepository(BaseRepository):
 
-    if not incluirInativos:
-        consulta = consulta.where(RegistrosClimaticos.Ativo.is_(True))
+    def __init__(self):
+        super().__init__(RegistrosClimaticos)
 
-    return db.session.execute(consulta).scalars().all()
+    def selecionar_por_data_hora_localidade(
+        self,
+        data: date,
+        hora: time,
+        fk_localidade: int,
+    ) -> RegistrosClimaticos | None:
+        return db.session.execute(
+            db.select(RegistrosClimaticos).where(
+                RegistrosClimaticos.Data == data,
+                RegistrosClimaticos.Hora == hora,
+                RegistrosClimaticos.FKLocalidade == fk_localidade,
+            )
+        ).scalars().first()
 
-def buscarRegistrosClimaticosPorId(id):
-    return db.session.get(RegistrosClimaticos, id)
-
-def selecionarPorDataHoraELocalidade(Data: date, Hora: time, FKLocalidade: int) -> RegistrosClimaticos:
-    return db.session.execute(
-        db.select(RegistrosClimaticos).where(
-            RegistrosClimaticos.Data == Data,
-            RegistrosClimaticos.Hora == Hora,
-            RegistrosClimaticos.FKLocalidade == FKLocalidade
+    def alterar(self, registro: RegistrosClimaticos) -> RegistrosClimaticos | None:
+        registro_atual = self.buscar_por_id(
+            registro.IDRegistrosClimaticos
         )
-    ).scalars().first()
 
-def inserirRegistrosClimaticos(Registro : RegistrosClimaticos) -> RegistrosClimaticos:
-    db.session.add(Registro)
-    db.session.commit()
-    db.session.refresh(Registro)
-    return Registro
+        if registro_atual is not None:
+            registro_atual.Ativo = registro.Ativo
+            registro_atual.Data = registro.Data
+            registro_atual.FKLocalidade = registro.FKLocalidade
+            registro_atual.Hora = registro.Hora
+            registro_atual.Precipitacao = registro.Precipitacao
+            registro_atual.PressaoAtmosferica = registro.PressaoAtmosferica
+            registro_atual.TempMax = registro.TempMax
+            registro_atual.TempMin = registro.TempMin
+            registro_atual.TempMedia = registro.TempMedia
+            registro_atual.UmidadeRelativa = registro.UmidadeRelativa
+            registro_atual.VelocidadeVento = registro.VelocidadeVento
+            db.session.commit()
 
-def alterarRegistrosClimaticos(Registro : RegistrosClimaticos) -> RegistrosClimaticos:
-    reg = db.session.get(RegistrosClimaticos, Registro.IDRegistrosClimaticos)
-
-    if reg is not None:
-        reg.Ativo = Registro.Ativo
-        reg.Data = Registro.Data
-        reg.FKLocalidade = Registro.FKLocalidade
-        reg.Hora = Registro.Hora
-        reg.Precipitacao = Registro.Precipitacao
-        reg.PressaoAtmosferica = Registro.PressaoAtmosferica
-        reg.TempMax = Registro.TempMax
-        reg.TempMin = Registro.TempMin
-        reg.UmidadeRelativa = Registro.UmidadeRelativa
-        reg.VelocidadeVento = Registro.VelocidadeVento
-
-        db.session.commit()
-
-    return reg
-
-def deletarRegistrosClimaticos(id):
-    reg = db.session.get(RegistrosClimaticos, id)
-
-    if reg is not None:
-        reg.Ativo = False
-        db.session.commit()
-
-
-def existePeloId(id: int) -> bool:
-    return bool(db.session.execute(
-        db.select(db.exists().where(RegistrosClimaticos.IDRegistrosClimaticos == id))).scalar())
+        return registro_atual

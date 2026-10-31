@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from flask import Flask
 
 from Entity import db
-from Routes.EndPoints import registros_bp, thresholds_bp, localidades_bp
+from Routes.EndPoints import registrar_recursos
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
@@ -48,14 +48,13 @@ def _obterUrlBanco() -> str:
 
 app.config["SQLALCHEMY_DATABASE_URI"] = _obterUrlBanco()
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["RESTFUL_JSON"] = {"ensure_ascii": False}
 
 db.init_app(app)
 
-#======== Adicionando Blueprints à API ========
+#======== Registrando recursos da API ========
 
-app.register_blueprint(registros_bp)
-app.register_blueprint(thresholds_bp)
-app.register_blueprint(localidades_bp)
+registrar_recursos(app)
 
 
 #======== Comandos de banco ========

@@ -11,14 +11,6 @@ class TestInicializacaoAPI(unittest.TestCase):
     def test_app_importa(self):
         self.assertIsNotNone(app)
 
-    def test_blueprints_registrados(self):
-        blueprints = set(app.blueprints.keys())
-
-        self.assertEqual(
-            blueprints,
-            {"localidades", "registros", "thresholds"},
-        )
-
     def test_rotas_registradas(self):
         rotas = {}
 
@@ -33,6 +25,7 @@ class TestInicializacaoAPI(unittest.TestCase):
         self.assertEqual(
             set(rotas.keys()),
             {
+                "/health",
                 "/localidades",
                 "/localidades/<int:id>",
                 "/registros",
@@ -42,6 +35,7 @@ class TestInicializacaoAPI(unittest.TestCase):
             },
         )
 
+        self.assertEqual(rotas["/health"], {"GET"})
         self.assertEqual(rotas["/localidades"], {"GET", "POST"})
         self.assertEqual(rotas["/localidades/<int:id>"], {"GET", "PUT", "DELETE"})
         self.assertEqual(rotas["/registros"], {"GET", "POST"})
@@ -51,6 +45,12 @@ class TestInicializacaoAPI(unittest.TestCase):
 
     def test_comando_init_db_registrado(self):
         self.assertIn("init-db", app.cli.commands)
+
+    def test_health(self):
+        resposta = app.test_client().get("/health")
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(resposta.get_json(), {"status": "ok"})
 
 
 if __name__ == "__main__":

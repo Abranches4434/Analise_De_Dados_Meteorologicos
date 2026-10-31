@@ -1,105 +1,32 @@
-from flask import jsonify
-from pydantic import ValidationError
-
+from Controller.BaseController import BaseController
 from DTOs.ThresholdsRequestDTO import ThresholdsRequestDTO
 from DTOs.ThresholdsResponseDTO import ThresholdsResponseDTO
-from Exception.exception import (
-    ElementoNaoEncontradoException,
-    ElementoCadastrado,
-)
-from Service.ThresholdsService import (
-    selecionarTodos,
-    selecionarPeloId,
-    inserir,
-    alterar,
-    excluir,
-)
+from Service.ThresholdsService import ThresholdsService
 
 
-def _toDTO(dados) -> ThresholdsRequestDTO:
-    if isinstance(dados, ThresholdsRequestDTO):
-        return dados
+class ThresholdsController(BaseController):
 
-    return ThresholdsRequestDTO(**dados)
+    def __init__(self, servico: ThresholdsService | None = None):
+        super().__init__(servico or ThresholdsService())
 
+    def selecionar_todos(
+        self,
+        incluir_inativos: bool = False,
+    ) -> list[ThresholdsResponseDTO]:
+        return self.servico.selecionar_todos(incluir_inativos)
 
-def inserirThreshold(Threshold) -> ThresholdsResponseDTO:
+    def selecionar_por_id(self, id: int) -> ThresholdsResponseDTO:
+        return self.servico.selecionar_por_id(id)
 
-    try:
-        dto = _toDTO(Threshold)
-        return jsonify(inserir(dto).model_dump(mode="json")), 201
-    except ValidationError as error:
-        return jsonify({
-            "erro": str(error)
-        }), 400
-    except ElementoNaoEncontradoException as error:
-        return jsonify({
-            "erro": str(error)
-        }), 404
-    except ElementoCadastrado as error:
-        return jsonify({
-            "erro": str(error)
-        }), 409
-    except Exception as error:
-        return jsonify({
-            "erro": str(error)
-        }), 500
+    def inserir(self, dados) -> ThresholdsResponseDTO:
+        dto = self.converter_para_dto(dados, ThresholdsRequestDTO)
+        return self.servico.inserir(dto)
 
-def selecionarTodasThresholds() -> list[ThresholdsResponseDTO]:
+    def alterar(self, dados, id: int) -> ThresholdsResponseDTO:
+        dados_com_id = dict(dados or {})
+        dados_com_id["IDThreshold"] = id
+        dto = self.converter_para_dto(dados_com_id, ThresholdsRequestDTO)
+        return self.servico.alterar(dto)
 
-    try:
-        dtos = selecionarTodos()
-        return jsonify([dto.model_dump(mode="json") for dto in dtos]), 200
-    except Exception as error:
-        return jsonify({
-            "erro": str(error)
-        }), 500
-
-def selecionarThresholdPeloID(id : int) -> ThresholdsResponseDTO:
-
-    try:
-        return jsonify(selecionarPeloId(id).model_dump(mode="json")), 200
-    except ElementoNaoEncontradoException as error:
-        return jsonify({
-            "erro": str(error)
-        }), 404
-    except Exception as error:
-        return jsonify({
-            "erro": str(error)
-        }), 500
-
-def alterarThreshold(Threshold) -> ThresholdsResponseDTO:
-
-    try:
-        dto = _toDTO(Threshold)
-        return jsonify(alterar(dto).model_dump(mode="json")), 200
-    except ValidationError as error:
-        return jsonify({
-            "erro": str(error)
-        }), 400
-    except ElementoNaoEncontradoException as error:
-        return jsonify({
-            "erro": str(error)
-        }), 404
-    except ElementoCadastrado as error:
-        return jsonify({
-            "erro": str(error)
-        }), 409
-    except Exception as error:
-        return jsonify({
-            "erro": str(error)
-        }), 500
-
-def deletarThresholdPeloId(id : int) -> ThresholdsResponseDTO:
-
-    try:
-        excluir(id)
-        return "", 204
-    except ElementoNaoEncontradoException as error:
-        return jsonify({
-            "erro": str(error)
-        }), 404
-    except Exception as error:
-        return jsonify({
-            "erro": str(error)
-        }), 500
+    def excluir(self, id: int):
+        self.servico.excluir(id)

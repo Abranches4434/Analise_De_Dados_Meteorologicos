@@ -1,61 +1,42 @@
-from Entity.Thresholds import Thresholds
 from Entity import db
-from Enum.Variavel import Variavel
-from Enum.TipoLimiar import TipoLimiar
+from Entity.Thresholds import Thresholds
 from Enum.Estacao import Estacao
+from Enum.TipoLimiar import TipoLimiar
+from Enum.Variavel import Variavel
+from Repository.BaseRepository import BaseRepository
 
 
-def selecionarTodosThresholds(incluirInativos: bool = False) -> list[Thresholds]:
-    consulta = db.select(Thresholds)
+class ThresholdsRepository(BaseRepository):
 
-    if not incluirInativos:
-        consulta = consulta.where(Thresholds.Ativo.is_(True))
+    def __init__(self):
+        super().__init__(Thresholds)
 
-    return db.session.execute(consulta).scalars().all()
+    def selecionar_por_chave(
+        self,
+        fk_localidade: int,
+        variavel: Variavel,
+        tipo_limiar: TipoLimiar,
+        estacao_do_ano: Estacao,
+    ) -> Thresholds | None:
+        return db.session.execute(
+            db.select(Thresholds).where(
+                Thresholds.FKLocalidade == fk_localidade,
+                Thresholds.Variavel == variavel,
+                Thresholds.TipoLimiar == tipo_limiar,
+                Thresholds.EstacaoDoAno == estacao_do_ano,
+            )
+        ).scalars().first()
 
-def buscarThresholdsPorId(id):
-    return db.session.get(Thresholds, id)
+    def alterar(self, threshold: Thresholds) -> Thresholds | None:
+        threshold_atual = self.buscar_por_id(threshold.IDThreshold)
 
-def selecionarPorChave(FKLocalidade: int, Variavel: Variavel,
-                       TipoLimiar: TipoLimiar, EstacaoDoAno: Estacao) -> Thresholds:
-    return db.session.execute(
-        db.select(Thresholds).where(
-            Thresholds.FKLocalidade == FKLocalidade,
-            Thresholds.Variavel == Variavel,
-            Thresholds.TipoLimiar == TipoLimiar,
-            Thresholds.EstacaoDoAno == EstacaoDoAno
-        )
-    ).scalars().first()
+        if threshold_atual is not None:
+            threshold_atual.FKLocalidade = threshold.FKLocalidade
+            threshold_atual.Ativo = threshold.Ativo
+            threshold_atual.EstacaoDoAno = threshold.EstacaoDoAno
+            threshold_atual.TipoLimiar = threshold.TipoLimiar
+            threshold_atual.Valor = threshold.Valor
+            threshold_atual.Variavel = threshold.Variavel
+            db.session.commit()
 
-def inserirThresholds(thresholds : Thresholds) -> Thresholds:
-    db.session.add(thresholds)
-    db.session.commit()
-    db.session.refresh(thresholds)
-    return thresholds
-
-def alterarThresholds(thresholds : Thresholds) -> Thresholds:
-    td = db.session.get(Thresholds, thresholds.IDThreshold)
-
-    if td is not None:
-        td.FKLocalidade = thresholds.FKLocalidade
-        td.Ativo = thresholds.Ativo
-        td.EstacaoDoAno = thresholds.EstacaoDoAno
-        td.TipoLimiar = thresholds.TipoLimiar
-        td.Valor = thresholds.Valor
-        td.Variavel = thresholds.Variavel
-
-        db.session.commit()
-
-    return td
-
-def deletarThresholds(id):
-    reg = db.session.get(Thresholds, id)
-
-    if reg is not None:
-        reg.Ativo = False
-        db.session.commit()
-
-
-def existePeloId(id: int) -> bool:
-    return bool(db.session.execute(
-        db.select(db.exists().where(Thresholds.IDThreshold == id))).scalar())
+        return threshold_atual

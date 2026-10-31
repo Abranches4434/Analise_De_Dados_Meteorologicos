@@ -1,87 +1,122 @@
 from DTOs.ThresholdsRequestDTO import ThresholdsRequestDTO
 from DTOs.ThresholdsResponseDTO import ThresholdsResponseDTO
-from Repository.ThresholdsRepository import (
-    selecionarTodosThresholds,
-    buscarThresholdsPorId,
-    selecionarPorChave,
-    inserirThresholds,
-    alterarThresholds,
-    deletarThresholds,
-    existePeloId,
-)
-from Repository.LocalidadesRepository import existeAtivoPeloId as existeLocalidadeAtiva
 from Exception.exception import (
-    ElementoNaoEncontradoException,
     ElementoCadastrado,
+    ElementoNaoEncontradoException,
 )
+from Repository.LocalidadesRepository import LocalidadesRepository
+from Repository.ThresholdsRepository import ThresholdsRepository
+from Service.BaseService import BaseService
 
 
-def selecionarTodos(incluirInativos: bool = False) -> list[ThresholdsResponseDTO]:
+class ThresholdsService(BaseService):
 
-    dtoList = [ThresholdsResponseDTO.EntityToDTO(threshold) for threshold
-               in selecionarTodosThresholds(incluirInativos)]
+    def __init__(
+        self,
+        repositorio: ThresholdsRepository | None = None,
+        localidades_repositorio: LocalidadesRepository | None = None,
+    ):
+        super().__init__(repositorio or ThresholdsRepository())
+        self._localidades_repositorio = (
+            localidades_repositorio or LocalidadesRepository()
+        )
 
-    return dtoList
+    @property
+    def localidades_repositorio(self) -> LocalidadesRepository:
+        return self._localidades_repositorio
 
-def selecionarPeloId(id: int) -> ThresholdsResponseDTO:
+    def selecionar_todos(
+        self,
+        incluir_inativos: bool = False,
+    ) -> list[ThresholdsResponseDTO]:
+        return [
+            ThresholdsResponseDTO.EntityToDTO(threshold)
+            for threshold in self.repositorio.selecionar_todos(
+                incluir_inativos
+            )
+        ]
 
-    obj = buscarThresholdsPorId(id)
+    def selecionar_por_id(self, id: int) -> ThresholdsResponseDTO:
+        threshold = self.repositorio.buscar_por_id(id)
 
-    if obj is None:
-        raise ElementoNaoEncontradoException(f"Threshold com o id: {id} não foi encontrada")
+        if threshold is None:
+            raise ElementoNaoEncontradoException(
+                f"Threshold com o id: {id} não foi encontrada"
+            )
 
-    return ThresholdsResponseDTO.EntityToDTO(obj)
+        return ThresholdsResponseDTO.EntityToDTO(threshold)
 
-def inserir(Threshold: ThresholdsRequestDTO) -> ThresholdsResponseDTO:
+    def inserir(
+        self,
+        threshold: ThresholdsRequestDTO,
+    ) -> ThresholdsResponseDTO:
+        if not self.localidades_repositorio.existe_ativo_por_id(
+            threshold.FKLocalidade
+        ):
+            raise ElementoNaoEncontradoException(
+                f"Localidade ativa com o id: {threshold.FKLocalidade} não foi encontrada!"
+            )
 
-    if not existeLocalidadeAtiva(Threshold.FKLocalidade):
-        raise ElementoNaoEncontradoException(
-            f"Localidade ativa com o id: {Threshold.FKLocalidade} não foi encontrada!")
+        existente = self.repositorio.selecionar_por_chave(
+            threshold.FKLocalidade,
+            threshold.Variavel,
+            threshold.TipoLimiar,
+            threshold.EstacaoDoAno,
+        )
 
-    obj = selecionarPorChave(
-        Threshold.FKLocalidade,
-        Threshold.Variavel,
-        Threshold.TipoLimiar,
-        Threshold.EstacaoDoAno,
-    )
+        if existente is not None:
+            raise ElementoCadastrado(
+                "Já existe um threshold para essa localidade, variável, tipo de limiar e estação do ano!"
+            )
 
-    if obj is not None:
-        raise ElementoCadastrado(
-            "Já existe um threshold para essa localidade, variável, tipo de limiar e estação do ano!")
+        return ThresholdsResponseDTO.EntityToDTO(
+            self.repositorio.inserir(threshold.dtoToEntity())
+        )
 
-    return ThresholdsResponseDTO.EntityToDTO(
-        inserirThresholds(Threshold.dtoToEntity()))
+    def alterar(
+        self,
+        threshold: ThresholdsRequestDTO,
+    ) -> ThresholdsResponseDTO:
+        if threshold.IDThreshold is None:
+            raise ElementoNaoEncontradoException(
+                "O id do threshold deve ser informado!"
+            )
 
-def alterar(Threshold: ThresholdsRequestDTO) -> ThresholdsResponseDTO:
+        if not self.repositorio.existe_por_id(threshold.IDThreshold):
+            raise ElementoNaoEncontradoException(
+                f"Threshold com o id: {threshold.IDThreshold} não foi encontrada!"
+            )
 
-    if Threshold.IDThreshold is None:
-        raise ElementoNaoEncontradoException("O id do threshold deve ser informado!")
+        if not self.localidades_repositorio.existe_ativo_por_id(
+            threshold.FKLocalidade
+        ):
+            raise ElementoNaoEncontradoException(
+                f"Localidade ativa com o id: {threshold.FKLocalidade} não foi encontrada!"
+            )
 
-    if not existePeloId(Threshold.IDThreshold):
-        raise ElementoNaoEncontradoException(
-            f"Threshold com o id: {Threshold.IDThreshold} não foi encontrada!")
+        existente = self.repositorio.selecionar_por_chave(
+            threshold.FKLocalidade,
+            threshold.Variavel,
+            threshold.TipoLimiar,
+            threshold.EstacaoDoAno,
+        )
 
-    if not existeLocalidadeAtiva(Threshold.FKLocalidade):
-        raise ElementoNaoEncontradoException(
-            f"Localidade ativa com o id: {Threshold.FKLocalidade} não foi encontrada!")
+        if (
+            existente is not None
+            and existente.IDThreshold != threshold.IDThreshold
+        ):
+            raise ElementoCadastrado(
+                "Já existe um threshold para essa localidade, variável, tipo de limiar e estação do ano!"
+            )
 
-    obj = selecionarPorChave(
-        Threshold.FKLocalidade,
-        Threshold.Variavel,
-        Threshold.TipoLimiar,
-        Threshold.EstacaoDoAno,
-    )
+        return ThresholdsResponseDTO.EntityToDTO(
+            self.repositorio.alterar(threshold.dtoToEntity())
+        )
 
-    if obj is not None and obj.IDThreshold != Threshold.IDThreshold:
-        raise ElementoCadastrado(
-            "Já existe um threshold para essa localidade, variável, tipo de limiar e estação do ano!")
+    def excluir(self, id: int):
+        if not self.repositorio.existe_por_id(id):
+            raise ElementoNaoEncontradoException(
+                f"Threshold com o id: {id} não foi encontrada!"
+            )
 
-    return ThresholdsResponseDTO.EntityToDTO(
-        alterarThresholds(Threshold.dtoToEntity()))
-
-def excluir(id: int):
-
-    if not existePeloId(id):
-        raise ElementoNaoEncontradoException(f"Threshold com o id: {id} não foi encontrada!")
-
-    deletarThresholds(id)
+        self.repositorio.inativar(id)

@@ -1,69 +1,93 @@
+from DTOs.LocalidadesRequestDTO import (
+    LocalidadesRequestDTO,
+    normalizarCoordenada,
+)
 from DTOs.LocalidadesResponseDTO import LocalidadesResponseDTO
-from DTOs.LocalidadesRequestDTO import LocalidadesRequestDTO, normalizarCoordenada
-from Repository.LocalidadesRepository import (
-    selecionarTodasLocalidades,
-    buscarLocalidadePorId,
-    selecionarPorLatitudeELongitude,
-    inserirLocalidade,
-    alterarLocalidade,
-    deletarLocalidade,
-    existePeloId,
-)
 from Exception.exception import (
-    ElementoNaoEncontradoException,
     ElementoCadastrado,
+    ElementoNaoEncontradoException,
 )
+from Repository.LocalidadesRepository import LocalidadesRepository
+from Service.BaseService import BaseService
 
 
-def selecionarTodos(incluirInativos: bool = False) -> list[LocalidadesResponseDTO]:
-    
-    dtoList = [LocalidadesResponseDTO.EntityToDTO(localidade) for localidade 
-                                                    in selecionarTodasLocalidades(incluirInativos)]
-    
-    return dtoList
+class LocalidadesService(BaseService):
 
-def selecionarPeloId(id: int) -> LocalidadesResponseDTO:
-    
-    obj = buscarLocalidadePorId(id)
-    
-    if obj is None:
-        raise ElementoNaoEncontradoException(f"Localidade com o id: {id} não foi encontrada")
+    def __init__(self, repositorio: LocalidadesRepository | None = None):
+        super().__init__(repositorio or LocalidadesRepository())
 
-    return LocalidadesResponseDTO.EntityToDTO(obj)
+    def selecionar_todos(
+        self,
+        incluir_inativos: bool = False,
+    ) -> list[LocalidadesResponseDTO]:
+        return [
+            LocalidadesResponseDTO.EntityToDTO(localidade)
+            for localidade in self.repositorio.selecionar_todos(
+                incluir_inativos
+            )
+        ]
 
-def inserir(Localidade: LocalidadesRequestDTO) -> LocalidadesResponseDTO:
+    def selecionar_por_id(self, id: int) -> LocalidadesResponseDTO:
+        localidade = self.repositorio.buscar_por_id(id)
 
-    latitude = normalizarCoordenada(Localidade.Latitude)
-    longitude = normalizarCoordenada(Localidade.Longitude)
+        if localidade is None:
+            raise ElementoNaoEncontradoException(
+                f"Localidade com o id: {id} não foi encontrada"
+            )
 
-    obj = selecionarPorLatitudeELongitude(latitude, longitude)
+        return LocalidadesResponseDTO.EntityToDTO(localidade)
 
-    if obj is not None:
-        raise ElementoCadastrado("Localidade já cadastrada no sistema!")
+    def inserir(self, localidade: LocalidadesRequestDTO) -> LocalidadesResponseDTO:
+        latitude = normalizarCoordenada(localidade.Latitude)
+        longitude = normalizarCoordenada(localidade.Longitude)
 
-    return LocalidadesResponseDTO.EntityToDTO(inserirLocalidade(Localidade.dtoToEntity()))
+        existente = self.repositorio.selecionar_por_coordenadas(
+            latitude,
+            longitude,
+        )
 
-def alterar(Localidade: LocalidadesRequestDTO) -> LocalidadesResponseDTO:
+        if existente is not None:
+            raise ElementoCadastrado("Localidade já cadastrada no sistema!")
 
-    if Localidade.IDLocalidade is None:
-        raise ElementoNaoEncontradoException("O id da localidade deve ser informado!")
+        return LocalidadesResponseDTO.EntityToDTO(
+            self.repositorio.inserir(localidade.dtoToEntity())
+        )
 
-    if not existePeloId(Localidade.IDLocalidade):
-        raise ElementoNaoEncontradoException(f"Localidade com o id: {Localidade.IDLocalidade} não foi encontrada!")
+    def alterar(self, localidade: LocalidadesRequestDTO) -> LocalidadesResponseDTO:
+        if localidade.IDLocalidade is None:
+            raise ElementoNaoEncontradoException(
+                "O id da localidade deve ser informado!"
+            )
 
-    latitude = normalizarCoordenada(Localidade.Latitude)
-    longitude = normalizarCoordenada(Localidade.Longitude)
+        if not self.repositorio.existe_por_id(localidade.IDLocalidade):
+            raise ElementoNaoEncontradoException(
+                f"Localidade com o id: {localidade.IDLocalidade} não foi encontrada!"
+            )
 
-    obj = selecionarPorLatitudeELongitude(latitude, longitude)
+        latitude = normalizarCoordenada(localidade.Latitude)
+        longitude = normalizarCoordenada(localidade.Longitude)
 
-    if obj is not None and obj.IDLocalidade != Localidade.IDLocalidade:
-        raise ElementoCadastrado("Já existe outra localidade cadastrada com essa latitude e longitude!")
+        existente = self.repositorio.selecionar_por_coordenadas(
+            latitude,
+            longitude,
+        )
 
-    return LocalidadesResponseDTO.EntityToDTO(alterarLocalidade(Localidade.dtoToEntity()))
+        if (
+            existente is not None
+            and existente.IDLocalidade != localidade.IDLocalidade
+        ):
+            raise ElementoCadastrado(
+                "Já existe outra localidade cadastrada com essa latitude e longitude!"
+            )
 
-def excluir(id: int):
+        return LocalidadesResponseDTO.EntityToDTO(
+            self.repositorio.alterar(localidade.dtoToEntity())
+        )
 
-    if not existePeloId(id):
-        raise ElementoNaoEncontradoException(f"Localidade com o id: {id} não foi encontrada!")
+    def excluir(self, id: int):
+        if not self.repositorio.existe_por_id(id):
+            raise ElementoNaoEncontradoException(
+                f"Localidade com o id: {id} não foi encontrada!"
+            )
 
-    deletarLocalidade(id)
+        self.repositorio.inativar(id)
