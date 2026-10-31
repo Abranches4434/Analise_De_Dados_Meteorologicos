@@ -10,9 +10,9 @@
 | Projeto | AnaliseDeDadosMeteorologicos |
 | Diretório | `/home/kaique/Área de trabalho/AnaliseDeDadosMeteorologicos` |
 | Branch | `main` |
-| Último commit estável | `72b6d36` — Consolida configuração atual da API |
+| Último commit estável | `69ca9e6` — Adiciona temperatura media e inativacao de registros |
 | Data desta atualização | 2026-10-30 |
-| Estado da árvore Git | Limpa após o commit `72b6d36` |
+| Estado da árvore Git | Limpa após o commit `69ca9e6` (exceto caches do `.venv` versionado) |
 
 ## 2. Stack e versões
 
@@ -69,16 +69,17 @@ Restrição: latitude e longitude únicas.
 | IDRegistrosClimaticos | inteiro, PK |
 | TempMax | numérico, -20 a 50 |
 | TempMin | numérico, -20 a 50 |
+| TempMedia | numérico, -20 a 50 |
 | UmidadeRelativa | numérico, 0 a 100 |
 | Precipitacao | numérico, maior ou igual a 0 |
-| VelocidadeVento | numérico, maior ou igual a 0 |
-| PressaoAtmosferica | numérico, maior ou igual a 0 |
+| VelocidadeVento | numérico, 0 a 150 |
+| PressaoAtmosferica | numérico, 800 a 1100 |
 | Data | data |
 | Hora | hora |
 | Ativo | booleano, padrão verdadeiro |
 | FKLocalidade | FK para Localidades |
 
-Restrições: `TempMin <= TempMax` e unicidade de data, hora e localidade.
+Restrições: `TempMin <= TempMax`, `TempMin <= TempMedia <= TempMax` e unicidade de data, hora e localidade.
 
 ### Thresholds
 
@@ -102,17 +103,17 @@ Restrição: unicidade de localidade, variável, tipo de limiar e estação do a
 | POST | `/localidades` | Cadastra localidade |
 | GET | `/localidades/<id>` | Busca localidade |
 | PUT | `/localidades/<id>` | Altera localidade |
-| DELETE | `/localidades/<id>` | Remove localidade |
+| DELETE | `/localidades/<id>` | Inativa localidade |
 | GET | `/registros` | Lista registros |
 | POST | `/registros` | Cadastra registro |
 | GET | `/registros/<id>` | Busca registro |
 | PUT | `/registros/<id>` | Altera registro |
-| DELETE | `/registros/<id>` | Remove registro |
+| DELETE | `/registros/<id>` | Inativa registro |
 | GET | `/thresholds` | Lista thresholds |
 | POST | `/thresholds` | Cadastra threshold |
 | GET | `/thresholds/<id>` | Busca threshold |
 | PUT | `/thresholds/<id>` | Altera threshold |
-| DELETE | `/thresholds/<id>` | Remove threshold |
+| DELETE | `/thresholds/<id>` | Inativa threshold |
 
 Formato de erro: `{"erro": "mensagem"}` com status 400, 404, 409 ou 500.
 
@@ -120,26 +121,25 @@ Formato de erro: `{"erro": "mensagem"}` com status 400, 404, 409 ou 500.
 
 - Cadastro de localidades com nome, cidade, estado, latitude e longitude.
 - Registro climático vinculado a uma localidade e a data/hora.
-- Validação de faixas de temperatura (-20 a 50), umidade (0 a 100), precipitação, vento e pressão não negativos.
-- Temperatura mínima não pode ser maior que a máxima.
+- Validação de faixas de temperatura (-20 a 50), umidade (0 a 100), precipitação não negativa, vento (0 a 150) e pressão (800 a 1100).
+- Temperatura mínima não pode ser maior que a máxima e a média deve ficar entre as duas.
 - Data do registro não pode ser futura.
 - Bloqueio de localidade duplicada por latitude e longitude.
 - Bloqueio de registro duplicado por data, hora e localidade.
 - Bloqueio de threshold duplicado por localidade, variável, tipo e estação.
 - Validações específicas de thresholds por variável.
-- Localidade com registros ou thresholds não pode ser excluída.
+- Registros, localidades e thresholds são inativados, não excluídos fisicamente.
+- Registros só podem ser vinculados a localidades ativas.
 - Tratamento de erros de validação, não encontrado, conflito e erro interno.
 
 ## 7. Lacunas em relação ao escopo
 
-- Não armazena temperatura média.
 - Não possui consulta por período e localidade.
 - Não gera estatísticas descritivas.
 - Não compara localidades.
 - Não identifica eventos extremos.
 - Não analisa sazonalidade.
 - Não exporta resultados.
-- `DELETE` exclui fisicamente; não preserva histórico.
 - Não possui interface gráfica.
 - Não possui Dockerfile, docker-compose ou script SQL de inicialização.
 - Não usa classes com herança, polimorfismo, construtor e encapsulamento de forma efetiva.
@@ -171,9 +171,10 @@ Estado atual: 4 testes de inicialização, executados com SQLite em memória.
 
 ## 10. Problemas conhecidos
 
-- O schema do banco local está diferente do schema definido nos modelos atuais (tipos e nulabilidade), provavelmente por criação anterior com versões antigas dos modelos.
+- O schema local foi recriado com `DROP SCHEMA public CASCADE`; os dados anteriores foram descartados conforme decisão do grupo.
+- As constraints de `CHECK` das entidades precisaram de identificadores entre aspas para funcionar no PostgreSQL.
 - O diretório `.venv` está versionado no Git, apesar de o `.gitignore` prever ambientes virtuais.
-- A configuração de testes usa SQLite, que não é um SGBD permitido pelo trabalho.
+- A configuração de testes ainda usa SQLite, que não é um SGBD permitido pelo trabalho.
 - O README ainda não documenta as análises, a interface, o Docker nem o fluxo final.
 
 ## 11. Histórico de atualizações
@@ -181,3 +182,4 @@ Estado atual: 4 testes de inicialização, executados com SQLite em memória.
 | Data | Commit | Alteração documentada |
 |---|---|---|
 | 2026-10-30 | `72b6d36` | Estado inicial documentado antes da finalização; consolidada a configuração local com `python-dotenv` |
+| 2026-10-30 | `69ca9e6` | Adicionados `TempMedia`, faixas de vento e pressão, inativação de registros e recriação do schema PostgreSQL |
