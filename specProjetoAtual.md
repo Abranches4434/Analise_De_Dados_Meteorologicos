@@ -10,9 +10,9 @@
 | Projeto | AnaliseDeDadosMeteorologicos |
 | Diretório | `/home/kaique/Área de trabalho/AnaliseDeDadosMeteorologicos` |
 | Branch | `main` |
-| Último commit estável | `5d729d0` — Adiciona analises, exportacao CSV e dados de demonstracao |
+| Último commit estável | `186876c` — Adiciona containerizacao com Docker e PostgreSQL |
 | Data desta atualização | 2026-10-30 |
-| Estado da árvore Git | Limpa após o commit `5d729d0` (exceto caches do `.venv` versionado) |
+| Estado da árvore Git | Limpa após o commit `186876c` (exceto caches do `.venv` versionado) |
 
 ## 2. Stack e versões
 
@@ -44,6 +44,9 @@ AnaliseDeDadosMeteorologicos/
 ├── Routes/           # Resources REST e BaseResource
 ├── Service/          # Serviços, BaseService e AnaliseService
 ├── seed.py           # Dados de demonstração
+├── init.sql          # Script SQL de inicialização do PostgreSQL
+├── Dockerfile
+├── docker-compose.yml
 ├── tests/
 └── requirements.txt
 ```
@@ -151,10 +154,8 @@ Formato de erro: `{"erro": "mensagem"}` com status 400, 404, 409 ou 500. As rota
 
 ## 7. Lacunas em relação ao escopo
 
-- Não possui interface gráfica.
-- Não possui Dockerfile, docker-compose ou script SQL de inicialização.
+- A interface Tkinter existe em diretório separado e não é containerizada.
 - Testes cobrem apenas inicialização, rotas e `/health`; faltam testes de integração das análises em PostgreSQL.
-- O README ainda não está finalizado.
 
 ## 8. Configuração e execução
 
@@ -174,6 +175,12 @@ python app.py
 
 O comando `seed-demo` só cria dados se ainda não existirem localidades. Os dados de demonstração usam o ano de 2025, três cidades paulistas e thresholds anuais/verão/inverno.
 
+### Docker
+
+O `Dockerfile` usa `python:3.12-slim`, instala `requirements.txt` e executa `python app.py`. O `docker-compose.yml` define PostgreSQL 16, volume persistente, healthchecks e a API com `DATABASE_URL` apontando para o serviço `db`. O `init.sql` cria os enums e as tabelas com as mesmas constraints do modelo SQLAlchemy e é executado pelo entrypoint do PostgreSQL na primeira criação do volume.
+
+A API é iniciada após o banco ficar saudável, executa `flask --app app init-db`, `flask --app app seed-demo` e sobe em `0.0.0.0:5000`. Portas, banco e credenciais podem ser alterados pelas variáveis `API_PORT`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD`.
+
 ## 9. Testes
 
 ```bash
@@ -182,14 +189,15 @@ python -m unittest discover -s tests -v
 
 Estado atual: 4 testes de inicialização, executados com SQLite em memória. As análises e exportações foram validadas manualmente contra o PostgreSQL com os dados de demonstração.
 
+O Docker Compose foi validado com `docker compose config`, build da imagem, subida de PostgreSQL e API, healthcheck, seed automático, CRUD, as quatro análises, exportação CSV e chamadas pelo cliente da interface. Os containers e o volume de teste foram removidos ao final.
+
 ## 10. Problemas conhecidos
 
 - O schema local foi recriado com `DROP SCHEMA public CASCADE`; os dados anteriores foram descartados conforme decisão do grupo.
 - As constraints de `CHECK` das entidades precisaram de identificadores entre aspas para funcionar no PostgreSQL.
 - O diretório `.venv` está versionado no Git, apesar de o `.gitignore` prever ambientes virtuais.
 - A configuração de testes ainda usa SQLite, que não é um SGBD permitido pelo trabalho.
-- O README ainda não documenta as análises, a interface, o Docker nem o fluxo final.
-- A API foi validada com `flask run`, chamada real a `/health`, CRUD, análises e exportação CSV em PostgreSQL.
+- A API foi validada com `flask run` e com Docker Compose, incluindo `/health`, CRUD, análises e exportação CSV em PostgreSQL.
 - O banco local contém os dados de demonstração do comando `seed-demo`.
 
 ## 11. Histórico de atualizações
@@ -200,3 +208,4 @@ Estado atual: 4 testes de inicialização, executados com SQLite em memória. As
 | 2026-10-30 | `69ca9e6` | Adicionados `TempMedia`, faixas de vento e pressão, inativação de registros e recriação do schema PostgreSQL |
 | 2026-10-30 | `522441c` | API migrada para Flask-RESTful com `BaseRepository`, `BaseService`, `BaseController` e `BaseResource`; adicionado `/health` |
 | 2026-10-30 | `5d729d0` | Adicionadas consultas filtradas, estatísticas, comparação, eventos extremos, sazonalidade, exportação CSV e seed de demonstração |
+| 2026-10-30 | `186876c` | Adicionados Dockerfile, docker-compose, `init.sql` e configuração de host/porta/debug por variáveis de ambiente; README atualizado |
