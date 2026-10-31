@@ -17,25 +17,25 @@ pip install -r requirements.txt
 
 ## Configuração
 
-A conexão com o banco é lida de variáveis de ambiente. A API falha na inicialização caso nenhuma configuração seja informada.
+A conexão com o banco é lida do arquivo `.env` na raiz do projeto, carregado automaticamente pelo `app.py`. A API falha na inicialização caso nenhuma configuração seja informada.
 
-Opção 1 — URL completa:
-
-```bash
-export DATABASE_URL="postgresql://usuario:senha@localhost:5432/analiseMeteorologica"
-```
-
-Opção 2 — campos separados:
+Edite o `.env` e preencha os parâmetros de conexão:
 
 ```bash
-export DB_USER="usuario"
-export DB_PASSWORD="senha"
-export DB_HOST="localhost"
-export DB_PORT="5432"
-export DB_NAME="analiseMeteorologica"
+DATABASE_URL=postgresql://SEU_USUARIO:SUA_SENHA@localhost:5432/analiseMeteorologica
 ```
 
-Consulte `.env.example` para um modelo. O arquivo `.env` não é carregado automaticamente; exporte as variáveis no shell ou use sua ferramenta de preferência.
+Também é possível usar os campos separados:
+
+```bash
+DB_USER=SEU_USUARIO
+DB_PASSWORD=SUA_SENHA
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=analiseMeteorologica
+```
+
+O `.env.example` serve como modelo. Variáveis exportadas no shell também são aceitas e têm prioridade sobre o `.env`.
 
 ## Banco de dados
 

@@ -1,10 +1,14 @@
 import os
+from pathlib import Path
 from urllib.parse import quote_plus
 
+from dotenv import load_dotenv
 from flask import Flask
 
 from Entity import db
 from Routes.EndPoints import registros_bp, thresholds_bp, localidades_bp
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 app = Flask(__name__)
 
