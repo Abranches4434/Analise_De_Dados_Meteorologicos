@@ -10,9 +10,9 @@
 | Projeto | AnaliseDeDadosMeteorologicos |
 | Diretório | `/home/kaique/Área de trabalho/AnaliseDeDadosMeteorologicos` |
 | Branch | `main` |
-| Último commit estável | `69ca9e6` — Adiciona temperatura media e inativacao de registros |
+| Último commit estável | `522441c` — Migra API para Flask-RESTful com camadas orientadas a objetos |
 | Data desta atualização | 2026-10-30 |
-| Estado da árvore Git | Limpa após o commit `69ca9e6` (exceto caches do `.venv` versionado) |
+| Estado da árvore Git | Limpa após o commit `522441c` (exceto caches do `.venv` versionado) |
 
 ## 2. Stack e versões
 
@@ -20,6 +20,7 @@
 |---|---|
 | Python | 3.12 |
 | Flask | 3.1.3 |
+| Flask-RESTful | 0.3.10 |
 | Flask-SQLAlchemy | 3.1.1 |
 | SQLAlchemy | 2.1.6 |
 | Pydantic | 2.14.1 |
@@ -34,14 +35,14 @@
 AnaliseDeDadosMeteorologicos/
 ├── app.py
 ├── Config/
-├── Controller/
-├── DTOs/
-├── Entity/
-├── Enum/
-├── Exception/
-├── Repository/
-├── Routes/
-├── Service/
+├── Controller/       # Controladores e BaseController
+├── DTOs/             # Validação e serialização Pydantic
+├── Entity/           # Modelos SQLAlchemy
+├── Enum/             # Enums de domínio
+├── Exception/        # Exceções de negócio
+├── Repository/       # Repositórios e BaseRepository
+├── Routes/           # Resources REST e BaseResource
+├── Service/          # Serviços e BaseService
 ├── tests/
 └── requirements.txt
 ```
@@ -99,23 +100,24 @@ Restrição: unicidade de localidade, variável, tipo de limiar e estação do a
 
 | Método | Rota | Descrição |
 |---|---|---|
-| GET | `/localidades` | Lista localidades |
+| GET | `/health` | Verifica se a API está no ar |
+| GET | `/localidades` | Lista localidades (aceita `incluir_inativos=true`) |
 | POST | `/localidades` | Cadastra localidade |
 | GET | `/localidades/<id>` | Busca localidade |
 | PUT | `/localidades/<id>` | Altera localidade |
 | DELETE | `/localidades/<id>` | Inativa localidade |
-| GET | `/registros` | Lista registros |
+| GET | `/registros` | Lista registros (aceita `incluir_inativos=true`) |
 | POST | `/registros` | Cadastra registro |
 | GET | `/registros/<id>` | Busca registro |
 | PUT | `/registros/<id>` | Altera registro |
 | DELETE | `/registros/<id>` | Inativa registro |
-| GET | `/thresholds` | Lista thresholds |
+| GET | `/thresholds` | Lista thresholds (aceita `incluir_inativos=true`) |
 | POST | `/thresholds` | Cadastra threshold |
 | GET | `/thresholds/<id>` | Busca threshold |
 | PUT | `/thresholds/<id>` | Altera threshold |
 | DELETE | `/thresholds/<id>` | Inativa threshold |
 
-Formato de erro: `{"erro": "mensagem"}` com status 400, 404, 409 ou 500.
+Formato de erro: `{"erro": "mensagem"}` com status 400, 404, 409 ou 500. As rotas são implementadas com `flask_restful.Resource`; os controladores não dependem de HTTP e os services concentram as regras de negócio.
 
 ## 6. Regras de negócio implementadas
 
@@ -142,9 +144,8 @@ Formato de erro: `{"erro": "mensagem"}` com status 400, 404, 409 ou 500.
 - Não exporta resultados.
 - Não possui interface gráfica.
 - Não possui Dockerfile, docker-compose ou script SQL de inicialização.
-- Não usa classes com herança, polimorfismo, construtor e encapsulamento de forma efetiva.
-- A API usa Flask puro, não Flask-RESTful.
-- Testes cobrem apenas a inicialização da aplicação.
+- Ainda não possui consultas, análises e exportação.
+- Testes cobrem apenas inicialização, rotas e `/health`.
 
 ## 8. Configuração e execução
 
@@ -176,6 +177,7 @@ Estado atual: 4 testes de inicialização, executados com SQLite em memória.
 - O diretório `.venv` está versionado no Git, apesar de o `.gitignore` prever ambientes virtuais.
 - A configuração de testes ainda usa SQLite, que não é um SGBD permitido pelo trabalho.
 - O README ainda não documenta as análises, a interface, o Docker nem o fluxo final.
+- A API foi validada com `flask run`, chamada real a `/health` e CRUD via test client em PostgreSQL.
 
 ## 11. Histórico de atualizações
 
@@ -183,3 +185,4 @@ Estado atual: 4 testes de inicialização, executados com SQLite em memória.
 |---|---|---|
 | 2026-10-30 | `72b6d36` | Estado inicial documentado antes da finalização; consolidada a configuração local com `python-dotenv` |
 | 2026-10-30 | `69ca9e6` | Adicionados `TempMedia`, faixas de vento e pressão, inativação de registros e recriação do schema PostgreSQL |
+| 2026-10-30 | `522441c` | API migrada para Flask-RESTful com `BaseRepository`, `BaseService`, `BaseController` e `BaseResource`; adicionado `/health` |
