@@ -10,9 +10,9 @@
 | Projeto | AnaliseDeDadosMeteorologicos |
 | Diretório | `/home/kaique/Área de trabalho/AnaliseDeDadosMeteorologicos` |
 | Branch | `main` |
-| Último commit estável | `186876c` — Adiciona containerizacao com Docker e PostgreSQL |
+| Último commit estável | `8b9650b` — Migra testes para PostgreSQL e adiciona integracao |
 | Data desta atualização | 2026-10-30 |
-| Estado da árvore Git | Limpa após o commit `186876c` (exceto caches do `.venv` versionado) |
+| Estado da árvore Git | Limpa após o commit `8b9650b` (exceto caches do `.venv` versionado) |
 
 ## 2. Stack e versões
 
@@ -27,7 +27,7 @@
 | psycopg | 3.3.6 |
 | python-dotenv | 1.2.4 |
 | Banco | PostgreSQL |
-| Testes | unittest |
+| Testes | unittest com PostgreSQL 16 |
 
 ## 3. Estrutura atual
 
@@ -154,8 +154,7 @@ Formato de erro: `{"erro": "mensagem"}` com status 400, 404, 409 ou 500. As rota
 
 ## 7. Lacunas em relação ao escopo
 
-- A interface Tkinter existe em diretório separado e não é containerizada.
-- Testes cobrem apenas inicialização, rotas e `/health`; faltam testes de integração das análises em PostgreSQL.
+- Nenhuma lacuna de back-end identificada. A interface Tkinter permanece em projeto separado e não é containerizada.
 
 ## 8. Configuração e execução
 
@@ -187,17 +186,21 @@ A API é iniciada após o banco ficar saudável, executa `flask --app app init-d
 python -m unittest discover -s tests -v
 ```
 
-Estado atual: 4 testes de inicialização, executados com SQLite em memória. As análises e exportações foram validadas manualmente contra o PostgreSQL com os dados de demonstração.
+Estado atual: 15 testes, divididos em inicialização e integração, executados com PostgreSQL. A suíte usa o schema isolado `analise_meteorologica_test`, criado e recriado automaticamente, e obtém a conexão de `TEST_DATABASE_URL` ou `DATABASE_URL`; não utiliza SQLite.
 
-O Docker Compose foi validado com `docker compose config`, build da imagem, subida de PostgreSQL e API, healthcheck, seed automático, CRUD, as quatro análises, exportação CSV e chamadas pelo cliente da interface. Os containers e o volume de teste foram removidos ao final.
+Os testes de integração cobrem seed, estatísticas, comparação, eventos extremos, sazonalidade por mês e estação, exportação dos cinco tipos de CSV, CRUD, inativação, exclusão de registros inativos das análises, semântica `MAXIMO >= limiar`, `MINIMO <= limiar`, `DIASSEMCHUVA` e erros de validação.
+
+O Docker Compose foi validado com `docker compose config`, build da imagem, subida de PostgreSQL e API, healthcheck, seed automático, CRUD, as quatro análises, exportação CSV e chamadas pelo cliente da interface. Os containers e o volume de teste foram removidos ao final. A suíte também foi executada contra um PostgreSQL 16 isolado via Docker, reproduzindo o ambiente do CI.
+
+O workflow `.github/workflows/ci.yml` configura PostgreSQL 16, valida a sintaxe, valida o Docker Compose e executa os testes.
 
 ## 10. Problemas conhecidos
 
 - O schema local foi recriado com `DROP SCHEMA public CASCADE`; os dados anteriores foram descartados conforme decisão do grupo.
 - As constraints de `CHECK` das entidades precisaram de identificadores entre aspas para funcionar no PostgreSQL.
 - O diretório `.venv` está versionado no Git, apesar de o `.gitignore` prever ambientes virtuais.
-- A configuração de testes ainda usa SQLite, que não é um SGBD permitido pelo trabalho.
 - A API foi validada com `flask run` e com Docker Compose, incluindo `/health`, CRUD, análises e exportação CSV em PostgreSQL.
+- O CI está configurado para PostgreSQL 16; a execução local equivalente passou com 15 testes.
 - O banco local contém os dados de demonstração do comando `seed-demo`.
 
 ## 11. Histórico de atualizações
@@ -209,3 +212,4 @@ O Docker Compose foi validado com `docker compose config`, build da imagem, subi
 | 2026-10-30 | `522441c` | API migrada para Flask-RESTful com `BaseRepository`, `BaseService`, `BaseController` e `BaseResource`; adicionado `/health` |
 | 2026-10-30 | `5d729d0` | Adicionadas consultas filtradas, estatísticas, comparação, eventos extremos, sazonalidade, exportação CSV e seed de demonstração |
 | 2026-10-30 | `186876c` | Adicionados Dockerfile, docker-compose, `init.sql` e configuração de host/porta/debug por variáveis de ambiente; README atualizado |
+| 2026-10-30 | `8b9650b` | Testes migrados para PostgreSQL com schema isolado; adicionados testes de integração e CI com PostgreSQL 16 |

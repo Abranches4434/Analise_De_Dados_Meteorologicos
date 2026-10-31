@@ -193,9 +193,24 @@ Erros são retornados como `{"erro": "mensagem"}` com status 400, 404, 409 ou 50
 
 ## Testes
 
+Os testes exigem PostgreSQL e usam um schema isolado chamado
+`analise_meteorologica_test`, criado e recriado automaticamente. Eles não usam SQLite.
+
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-A validação da API também pode ser feita com `curl` ou pela interface. O Docker Compose
-inclui healthcheck para o banco e para a API.
+A conexão é obtida de `TEST_DATABASE_URL`, quando definida, ou de `DATABASE_URL`/`.env`.
+Recomenda-se apontar para um banco dedicado de testes:
+
+```bash
+TEST_DATABASE_URL=postgresql://usuario:senha@localhost:5432/analiseMeteorologica_test python -m unittest discover -s tests -v
+```
+
+O schema de teste é apagado e recriado durante a execução; não aponte as variáveis para
+um banco com dados que não possam ser descartados. A suíte cobre inicialização, rotas,
+`/health`, CRUD, inativação, estatísticas, comparação, eventos extremos, sazonalidade,
+exportação CSV e validações de erro.
+
+O CI em `.github/workflows/ci.yml` sobe PostgreSQL 16, valida a sintaxe, valida o Docker
+Compose e executa a suíte. O Docker Compose inclui healthcheck para o banco e para a API.
