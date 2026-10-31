@@ -9,17 +9,17 @@ from Repository.ThresholdsRepository import (
     deletarThresholds,
     existePeloId,
 )
-from Repository.LocalidadesRepository import existePeloId as existeLocalidade
+from Repository.LocalidadesRepository import existeAtivoPeloId as existeLocalidadeAtiva
 from Exception.exception import (
     ElementoNaoEncontradoException,
     ElementoCadastrado,
 )
 
 
-def selecionarTodos() -> list[ThresholdsResponseDTO]:
+def selecionarTodos(incluirInativos: bool = False) -> list[ThresholdsResponseDTO]:
 
     dtoList = [ThresholdsResponseDTO.EntityToDTO(threshold) for threshold
-               in selecionarTodosThresholds()]
+               in selecionarTodosThresholds(incluirInativos)]
 
     return dtoList
 
@@ -34,9 +34,9 @@ def selecionarPeloId(id: int) -> ThresholdsResponseDTO:
 
 def inserir(Threshold: ThresholdsRequestDTO) -> ThresholdsResponseDTO:
 
-    if not existeLocalidade(Threshold.FKLocalidade):
+    if not existeLocalidadeAtiva(Threshold.FKLocalidade):
         raise ElementoNaoEncontradoException(
-            f"Localidade com o id: {Threshold.FKLocalidade} não foi encontrada!")
+            f"Localidade ativa com o id: {Threshold.FKLocalidade} não foi encontrada!")
 
     obj = selecionarPorChave(
         Threshold.FKLocalidade,
@@ -61,9 +61,9 @@ def alterar(Threshold: ThresholdsRequestDTO) -> ThresholdsResponseDTO:
         raise ElementoNaoEncontradoException(
             f"Threshold com o id: {Threshold.IDThreshold} não foi encontrada!")
 
-    if not existeLocalidade(Threshold.FKLocalidade):
+    if not existeLocalidadeAtiva(Threshold.FKLocalidade):
         raise ElementoNaoEncontradoException(
-            f"Localidade com o id: {Threshold.FKLocalidade} não foi encontrada!")
+            f"Localidade ativa com o id: {Threshold.FKLocalidade} não foi encontrada!")
 
     obj = selecionarPorChave(
         Threshold.FKLocalidade,

@@ -15,13 +15,15 @@ class RegistrosClimaticosRequestDTO(BaseModel):
 
     TempMin: float = Field(ge=-20, le=50)
 
+    TempMedia: float = Field(ge=-20, le=50)
+
     UmidadeRelativa: float = Field(ge=0, le=100)
 
     Precipitacao: float = Field(ge=0)
 
-    VelocidadeVento: float = Field(ge=0)
+    VelocidadeVento: float = Field(ge=0, le=150)
 
-    PressaoAtmosferica: float = Field(ge=0)
+    PressaoAtmosferica: float = Field(ge=800, le=1100)
 
     Data: date = Field()
 
@@ -37,6 +39,11 @@ class RegistrosClimaticosRequestDTO(BaseModel):
         if self.TempMin > self.TempMax:
             raise ValueError("A temperatura mínima não pode ser maior que a temperatura máxima!")
 
+        if not self.TempMin <= self.TempMedia <= self.TempMax:
+            raise ValueError(
+                "A temperatura média deve estar entre a temperatura mínima e a máxima!"
+            )
+
         if self.Data > date.today():
             raise ValueError("A data do registro não pode ser futura!")
 
@@ -50,6 +57,7 @@ class RegistrosClimaticosRequestDTO(BaseModel):
         entity.IDRegistrosClimaticos = self.IDRegistrosClimaticos
         entity.TempMax = self.TempMax
         entity.TempMin = self.TempMin
+        entity.TempMedia = self.TempMedia
         entity.UmidadeRelativa = self.UmidadeRelativa
         entity.Precipitacao = self.Precipitacao
         entity.VelocidadeVento = self.VelocidadeVento

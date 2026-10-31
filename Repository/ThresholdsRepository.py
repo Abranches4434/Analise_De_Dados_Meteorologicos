@@ -5,8 +5,13 @@ from Enum.TipoLimiar import TipoLimiar
 from Enum.Estacao import Estacao
 
 
-def selecionarTodosThresholds() -> list[Thresholds]:
-    return db.session.execute(db.select(Thresholds)).scalars().all()
+def selecionarTodosThresholds(incluirInativos: bool = False) -> list[Thresholds]:
+    consulta = db.select(Thresholds)
+
+    if not incluirInativos:
+        consulta = consulta.where(Thresholds.Ativo.is_(True))
+
+    return db.session.execute(consulta).scalars().all()
 
 def buscarThresholdsPorId(id):
     return db.session.get(Thresholds, id)
@@ -47,7 +52,7 @@ def deletarThresholds(id):
     reg = db.session.get(Thresholds, id)
 
     if reg is not None:
-        db.session.delete(reg)
+        reg.Ativo = False
         db.session.commit()
 
 

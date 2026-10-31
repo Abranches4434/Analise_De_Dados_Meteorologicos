@@ -6,8 +6,13 @@ from Entity.Thresholds import Thresholds
 from Entity import db
 
 
-def selecionarTodasLocalidades() -> list[Localidades]:
-    return db.session.execute(db.select(Localidades)).scalars().all()
+def selecionarTodasLocalidades(incluirInativos: bool = False) -> list[Localidades]:
+    consulta = db.select(Localidades)
+
+    if not incluirInativos:
+        consulta = consulta.where(Localidades.Ativo.is_(True))
+
+    return db.session.execute(consulta).scalars().all()
 
 def buscarLocalidadePorId(id):
     return db.session.get(Localidades, id)
@@ -43,12 +48,20 @@ def deletarLocalidade(id):
     loc = db.session.get(Localidades, id)
 
     if loc is not None:
-        db.session.delete(loc)
+        loc.Ativo = False
         db.session.commit()
 
 
 def existePeloId(id: int) -> bool:
     return bool(db.session.execute(db.select(db.exists().where(Localidades.IDLocalidade == id))).scalar())
+
+def existeAtivoPeloId(id: int) -> bool:
+    return bool(db.session.execute(
+        db.select(db.exists().where(
+            Localidades.IDLocalidade == id,
+            Localidades.Ativo.is_(True),
+        ))
+    ).scalar())
 
 def existeDependencia(id: int) -> bool:
     possuiRegistro = db.session.execute(

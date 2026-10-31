@@ -4,8 +4,13 @@ from Entity.RegistrosClimaticos import RegistrosClimaticos
 from Entity import db
 
 
-def selecionarTodosRegistrosClimaticos() -> list[RegistrosClimaticos]:
-    return db.session.execute(db.select(RegistrosClimaticos)).scalars().all()
+def selecionarTodosRegistrosClimaticos(incluirInativos: bool = False) -> list[RegistrosClimaticos]:
+    consulta = db.select(RegistrosClimaticos)
+
+    if not incluirInativos:
+        consulta = consulta.where(RegistrosClimaticos.Ativo.is_(True))
+
+    return db.session.execute(consulta).scalars().all()
 
 def buscarRegistrosClimaticosPorId(id):
     return db.session.get(RegistrosClimaticos, id)
@@ -48,7 +53,7 @@ def deletarRegistrosClimaticos(id):
     reg = db.session.get(RegistrosClimaticos, id)
 
     if reg is not None:
-        db.session.delete(reg)
+        reg.Ativo = False
         db.session.commit()
 
 

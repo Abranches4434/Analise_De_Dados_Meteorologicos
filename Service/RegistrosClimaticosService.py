@@ -9,17 +9,17 @@ from Repository.RegistrosClimaticosRepository import (
     deletarRegistrosClimaticos,
     existePeloId,
 )
-from Repository.LocalidadesRepository import existePeloId as existeLocalidade
+from Repository.LocalidadesRepository import existeAtivoPeloId as existeLocalidadeAtiva
 from Exception.exception import (
     ElementoNaoEncontradoException,
     ElementoCadastrado,
 )
 
 
-def selecionarTodos() -> list[RegistrosClimaticosResponseDTO]:
+def selecionarTodos(incluirInativos: bool = False) -> list[RegistrosClimaticosResponseDTO]:
 
     dtoList = [RegistrosClimaticosResponseDTO.EntityToDTO(registro) for registro
-               in selecionarTodosRegistrosClimaticos()]
+               in selecionarTodosRegistrosClimaticos(incluirInativos)]
 
     return dtoList
 
@@ -34,9 +34,9 @@ def selecionarPeloId(id: int) -> RegistrosClimaticosResponseDTO:
 
 def inserir(Registro: RegistrosClimaticosRequestDTO) -> RegistrosClimaticosResponseDTO:
 
-    if not existeLocalidade(Registro.FKLocalidade):
+    if not existeLocalidadeAtiva(Registro.FKLocalidade):
         raise ElementoNaoEncontradoException(
-            f"Localidade com o id: {Registro.FKLocalidade} não foi encontrada!")
+            f"Localidade ativa com o id: {Registro.FKLocalidade} não foi encontrada!")
 
     obj = selecionarPorDataHoraELocalidade(Registro.Data, Registro.Hora, Registro.FKLocalidade)
 
@@ -56,9 +56,9 @@ def alterar(Registro: RegistrosClimaticosRequestDTO) -> RegistrosClimaticosRespo
         raise ElementoNaoEncontradoException(
             f"Registro com o id: {Registro.IDRegistrosClimaticos} não foi encontrado!")
 
-    if not existeLocalidade(Registro.FKLocalidade):
+    if not existeLocalidadeAtiva(Registro.FKLocalidade):
         raise ElementoNaoEncontradoException(
-            f"Localidade com o id: {Registro.FKLocalidade} não foi encontrada!")
+            f"Localidade ativa com o id: {Registro.FKLocalidade} não foi encontrada!")
 
     obj = selecionarPorDataHoraELocalidade(Registro.Data, Registro.Hora, Registro.FKLocalidade)
 

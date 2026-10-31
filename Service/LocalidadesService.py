@@ -8,19 +8,17 @@ from Repository.LocalidadesRepository import (
     alterarLocalidade,
     deletarLocalidade,
     existePeloId,
-    existeDependencia,
 )
 from Exception.exception import (
     ElementoNaoEncontradoException,
     ElementoCadastrado,
-    ElementoComDependenciasException,
 )
 
 
-def selecionarTodos() -> list[LocalidadesResponseDTO]:
+def selecionarTodos(incluirInativos: bool = False) -> list[LocalidadesResponseDTO]:
     
     dtoList = [LocalidadesResponseDTO.EntityToDTO(localidade) for localidade 
-                                                    in selecionarTodasLocalidades()]
+                                                    in selecionarTodasLocalidades(incluirInativos)]
     
     return dtoList
 
@@ -67,9 +65,5 @@ def excluir(id: int):
 
     if not existePeloId(id):
         raise ElementoNaoEncontradoException(f"Localidade com o id: {id} não foi encontrada!")
-
-    if existeDependencia(id):
-        raise ElementoComDependenciasException(
-            f"Localidade com o id: {id} possui registros ou thresholds vinculados e não pode ser excluída!")
 
     deletarLocalidade(id)

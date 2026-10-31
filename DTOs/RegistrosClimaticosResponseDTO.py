@@ -15,6 +15,8 @@ class RegistrosClimaticosResponseDTO(BaseModel):
 
     TempMin: float
 
+    TempMedia: float
+
     UmidadeRelativa: float
 
     Precipitacao: float
@@ -38,6 +40,7 @@ class RegistrosClimaticosResponseDTO(BaseModel):
             IDRegistrosClimaticos=Registro.IDRegistrosClimaticos,
             TempMax=Registro.TempMax,
             TempMin=Registro.TempMin,
+            TempMedia=Registro.TempMedia,
             UmidadeRelativa=Registro.UmidadeRelativa,
             Precipitacao=Registro.Precipitacao,
             VelocidadeVento=Registro.VelocidadeVento,
