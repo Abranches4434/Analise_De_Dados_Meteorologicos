@@ -10,9 +10,9 @@
 | Projeto | AnaliseDeDadosMeteorologicos |
 | Diretório | `/home/kaique/Área de trabalho/AnaliseDeDadosMeteorologicos` |
 | Branch | `main` |
-| Último commit estável | `522441c` — Migra API para Flask-RESTful com camadas orientadas a objetos |
+| Último commit estável | `5d729d0` — Adiciona analises, exportacao CSV e dados de demonstracao |
 | Data desta atualização | 2026-10-30 |
-| Estado da árvore Git | Limpa após o commit `522441c` (exceto caches do `.venv` versionado) |
+| Estado da árvore Git | Limpa após o commit `5d729d0` (exceto caches do `.venv` versionado) |
 
 ## 2. Stack e versões
 
@@ -42,7 +42,8 @@ AnaliseDeDadosMeteorologicos/
 ├── Exception/        # Exceções de negócio
 ├── Repository/       # Repositórios e BaseRepository
 ├── Routes/           # Resources REST e BaseResource
-├── Service/          # Serviços e BaseService
+├── Service/          # Serviços, BaseService e AnaliseService
+├── seed.py           # Dados de demonstração
 ├── tests/
 └── requirements.txt
 ```
@@ -106,7 +107,7 @@ Restrição: unicidade de localidade, variável, tipo de limiar e estação do a
 | GET | `/localidades/<id>` | Busca localidade |
 | PUT | `/localidades/<id>` | Altera localidade |
 | DELETE | `/localidades/<id>` | Inativa localidade |
-| GET | `/registros` | Lista registros (aceita `incluir_inativos=true`) |
+| GET | `/registros` | Lista registros; aceita `incluir_inativos`, `data_inicio`, `data_fim` e `localidade_id` |
 | POST | `/registros` | Cadastra registro |
 | GET | `/registros/<id>` | Busca registro |
 | PUT | `/registros/<id>` | Altera registro |
@@ -116,6 +117,13 @@ Restrição: unicidade de localidade, variável, tipo de limiar e estação do a
 | GET | `/thresholds/<id>` | Busca threshold |
 | PUT | `/thresholds/<id>` | Altera threshold |
 | DELETE | `/thresholds/<id>` | Inativa threshold |
+| GET | `/analises/estatisticas` | Média, mediana, máximo, mínimo e quantidade por variável |
+| GET | `/analises/comparacao` | Compara duas ou mais localidades no mesmo período |
+| GET | `/analises/eventos-extremos` | Lista eventos que atingiram thresholds ativos |
+| GET | `/analises/sazonalidade` | Médias por mês (`agrupamento=mes`) ou estação (`agrupamento=estacao`) |
+| GET | `/exportacoes/<tipo>` | Exporta CSV de registros, estatísticas, comparação, eventos ou sazonalidade |
+
+As análises aceitam `data_inicio`, `data_fim` e `localidade_id`; a comparação usa `localidade_ids=1,2`; a exportação usa os mesmos filtros e aceita `agrupamento`. Datas no formato `AAAA-MM-DD`.
 
 Formato de erro: `{"erro": "mensagem"}` com status 400, 404, 409 ou 500. As rotas são implementadas com `flask_restful.Resource`; os controladores não dependem de HTTP e os services concentram as regras de negócio.
 
@@ -133,19 +141,20 @@ Formato de erro: `{"erro": "mensagem"}` com status 400, 404, 409 ou 500. As rota
 - Registros, localidades e thresholds são inativados, não excluídos fisicamente.
 - Registros só podem ser vinculados a localidades ativas.
 - Tratamento de erros de validação, não encontrado, conflito e erro interno.
+- Consulta de registros por período e localidade.
+- Estatísticas descritivas: média, mediana, máximo, mínimo e quantidade.
+- Comparação de duas ou mais localidades no mesmo intervalo.
+- Eventos extremos por `MAXIMO`, `MINIMO` e `DIASSEMCHUVA`, respeitando a estação do threshold.
+- Sazonalidade por mês ou estação do hemisfério sul.
+- Exportação CSV com separador `;`, BOM UTF-8 e cabeçalhos em português.
+- Seed de demonstração com 3 localidades, 1.095 registros e 18 thresholds.
 
 ## 7. Lacunas em relação ao escopo
 
-- Não possui consulta por período e localidade.
-- Não gera estatísticas descritivas.
-- Não compara localidades.
-- Não identifica eventos extremos.
-- Não analisa sazonalidade.
-- Não exporta resultados.
 - Não possui interface gráfica.
 - Não possui Dockerfile, docker-compose ou script SQL de inicialização.
-- Ainda não possui consultas, análises e exportação.
-- Testes cobrem apenas inicialização, rotas e `/health`.
+- Testes cobrem apenas inicialização, rotas e `/health`; faltam testes de integração das análises em PostgreSQL.
+- O README ainda não está finalizado.
 
 ## 8. Configuração e execução
 
@@ -159,8 +168,11 @@ Configurar `.env` com `DATABASE_URL` ou com `DB_USER`, `DB_PASSWORD`, `DB_HOST`,
 
 ```bash
 flask --app app init-db
+flask --app app seed-demo
 python app.py
 ```
+
+O comando `seed-demo` só cria dados se ainda não existirem localidades. Os dados de demonstração usam o ano de 2025, três cidades paulistas e thresholds anuais/verão/inverno.
 
 ## 9. Testes
 
@@ -168,7 +180,7 @@ python app.py
 python -m unittest discover -s tests -v
 ```
 
-Estado atual: 4 testes de inicialização, executados com SQLite em memória.
+Estado atual: 4 testes de inicialização, executados com SQLite em memória. As análises e exportações foram validadas manualmente contra o PostgreSQL com os dados de demonstração.
 
 ## 10. Problemas conhecidos
 
@@ -177,7 +189,8 @@ Estado atual: 4 testes de inicialização, executados com SQLite em memória.
 - O diretório `.venv` está versionado no Git, apesar de o `.gitignore` prever ambientes virtuais.
 - A configuração de testes ainda usa SQLite, que não é um SGBD permitido pelo trabalho.
 - O README ainda não documenta as análises, a interface, o Docker nem o fluxo final.
-- A API foi validada com `flask run`, chamada real a `/health` e CRUD via test client em PostgreSQL.
+- A API foi validada com `flask run`, chamada real a `/health`, CRUD, análises e exportação CSV em PostgreSQL.
+- O banco local contém os dados de demonstração do comando `seed-demo`.
 
 ## 11. Histórico de atualizações
 
@@ -186,3 +199,4 @@ Estado atual: 4 testes de inicialização, executados com SQLite em memória.
 | 2026-10-30 | `72b6d36` | Estado inicial documentado antes da finalização; consolidada a configuração local com `python-dotenv` |
 | 2026-10-30 | `69ca9e6` | Adicionados `TempMedia`, faixas de vento e pressão, inativação de registros e recriação do schema PostgreSQL |
 | 2026-10-30 | `522441c` | API migrada para Flask-RESTful com `BaseRepository`, `BaseService`, `BaseController` e `BaseResource`; adicionado `/health` |
+| 2026-10-30 | `5d729d0` | Adicionadas consultas filtradas, estatísticas, comparação, eventos extremos, sazonalidade, exportação CSV e seed de demonstração |
