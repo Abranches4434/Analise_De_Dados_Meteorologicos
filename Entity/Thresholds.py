@@ -15,6 +15,12 @@ class Thresholds(db.Model):
     Valor = db.Column(db.Numeric(7, 2), nullable=False)
     Ativo = db.Column(db.Boolean, nullable=False, default=True)
 
+    localidade = db.relationship(
+        "Localidades",
+        back_populates="thresholds",
+        lazy="select",
+    )
+
     __table_args__ = (
         db.UniqueConstraint(
             "FKLocalidade",

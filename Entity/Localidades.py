@@ -21,6 +21,17 @@ class Localidades(db.Model):
     )
     Ativo = db.Column(db.Boolean, nullable=False, default=True)
 
+    registros = db.relationship(
+        "RegistrosClimaticos",
+        back_populates="localidade",
+        lazy="select",
+    )
+    thresholds = db.relationship(
+        "Thresholds",
+        back_populates="localidade",
+        lazy="select",
+    )
+
     __table_args__ = (
         db.UniqueConstraint(
             "Latitude",

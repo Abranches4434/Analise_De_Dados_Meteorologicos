@@ -10,6 +10,7 @@ preparar_ambiente()
 
 from app import app
 from Entity import db
+from Entity.Localidades import Localidades
 from seed import popular_dados_demo
 
 
@@ -397,6 +398,35 @@ class TestSemanticaEventosECRUD(BancoPostgreSQLTestCase):
         self.assertEqual(eventos[0]["Dias"], 3)
         self.assertEqual(eventos[0]["DataInicio"], "2025-01-01")
         self.assertEqual(eventos[0]["DataFim"], "2025-01-03")
+
+    def test_relacionamentos_orm_entre_entidades(self):
+        registro = self.criar_registro(date(2025, 1, 1))
+        threshold = self.criar_threshold("MAXIMO", 30.0)
+
+        with app.app_context():
+            localidade = db.session.get(
+                Localidades,
+                self.localidade_id,
+            )
+
+            self.assertEqual(len(localidade.registros), 1)
+            self.assertEqual(len(localidade.thresholds), 1)
+            self.assertEqual(
+                localidade.registros[0].IDRegistrosClimaticos,
+                registro["IDRegistrosClimaticos"],
+            )
+            self.assertEqual(
+                localidade.registros[0].localidade.Nome,
+                "Estação Teste",
+            )
+            self.assertEqual(
+                localidade.thresholds[0].IDThreshold,
+                threshold["IDThreshold"],
+            )
+            self.assertEqual(
+                localidade.thresholds[0].localidade.IDLocalidade,
+                self.localidade_id,
+            )
 
     def test_crud_de_localidade_e_threshold(self):
         resposta = self.client.put(

@@ -45,6 +45,12 @@ class RegistrosClimaticos(db.Model):
     Ativo = db.Column(db.Boolean, nullable=False, default=True)
     FKLocalidade = db.Column(db.Integer, db.ForeignKey("Localidades.IDLocalidade", ondelete="no action"), nullable=False)
 
+    localidade = db.relationship(
+        "Localidades",
+        back_populates="registros",
+        lazy="select",
+    )
+
     __table_args__ = (
         db.CheckConstraint(
             '"TempMin" <= "TempMax"',

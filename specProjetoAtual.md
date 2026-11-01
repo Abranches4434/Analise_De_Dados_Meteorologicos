@@ -10,9 +10,9 @@
 | Projeto | AnaliseDeDadosMeteorologicos |
 | Diretório | `/home/kaique/Área de trabalho/AnaliseDeDadosMeteorologicos` |
 | Branch | `main` |
-| Último commit estável | `8b9650b` — Migra testes para PostgreSQL e adiciona integracao |
-| Data desta atualização | 2026-10-30 |
-| Estado da árvore Git | Limpa após o commit `8b9650b` (exceto caches do `.venv` versionado) |
+| Último commit estável | `5df74f2` — Documenta testes PostgreSQL e CI |
+| Data desta atualização | 2026-10-31 |
+| Estado da árvore Git | Limpa após o commit desta atualização |
 
 ## 2. Stack e versões
 
@@ -67,6 +67,9 @@ AnaliseDeDadosMeteorologicos/
 
 Restrição: latitude e longitude únicas.
 
+Relacionamentos ORM: `registros` e `thresholds` (1:N), com `back_populates`
+para `RegistrosClimaticos.localidade` e `Thresholds.localidade`.
+
 ### RegistrosClimaticos
 
 | Coluna | Tipo/modelo |
@@ -86,6 +89,8 @@ Restrição: latitude e longitude únicas.
 
 Restrições: `TempMin <= TempMax`, `TempMin <= TempMedia <= TempMax` e unicidade de data, hora e localidade.
 
+Relacionamento ORM: `localidade` (N:1) com `Localidades.registros`.
+
 ### Thresholds
 
 | Coluna | Tipo/modelo |
@@ -99,6 +104,8 @@ Restrições: `TempMin <= TempMax`, `TempMin <= TempMedia <= TempMax` e unicidad
 | Ativo | booleano, padrão verdadeiro |
 
 Restrição: unicidade de localidade, variável, tipo de limiar e estação do ano.
+
+Relacionamento ORM: `localidade` (N:1) com `Localidades.thresholds`.
 
 ## 5. API atual
 
@@ -186,9 +193,9 @@ A API é iniciada após o banco ficar saudável, executa `flask --app app init-d
 python -m unittest discover -s tests -v
 ```
 
-Estado atual: 15 testes, divididos em inicialização e integração, executados com PostgreSQL. A suíte usa o schema isolado `analise_meteorologica_test`, criado e recriado automaticamente, e obtém a conexão de `TEST_DATABASE_URL` ou `DATABASE_URL`; não utiliza SQLite.
+Estado atual: 16 testes, divididos em inicialização e integração, executados com PostgreSQL. A suíte usa o schema isolado `analise_meteorologica_test`, criado e recriado automaticamente, e obtém a conexão de `TEST_DATABASE_URL` ou `DATABASE_URL`; não utiliza SQLite.
 
-Os testes de integração cobrem seed, estatísticas, comparação, eventos extremos, sazonalidade por mês e estação, exportação dos cinco tipos de CSV, CRUD, inativação, exclusão de registros inativos das análises, semântica `MAXIMO >= limiar`, `MINIMO <= limiar`, `DIASSEMCHUVA` e erros de validação.
+Os testes de integração cobrem seed, estatísticas, comparação, eventos extremos, sazonalidade por mês e estação, exportação dos cinco tipos de CSV, CRUD, inativação, exclusão de registros inativos das análises, semântica `MAXIMO >= limiar`, `MINIMO <= limiar`, `DIASSEMCHUVA`, relacionamentos ORM e erros de validação.
 
 O Docker Compose foi validado com `docker compose config`, build da imagem, subida de PostgreSQL e API, healthcheck, seed automático, CRUD, as quatro análises, exportação CSV e chamadas pelo cliente da interface. Os containers e o volume de teste foram removidos ao final. A suíte também foi executada contra um PostgreSQL 16 isolado via Docker, reproduzindo o ambiente do CI.
 
@@ -198,9 +205,9 @@ O workflow `.github/workflows/ci.yml` configura PostgreSQL 16, valida a sintaxe,
 
 - O schema local foi recriado com `DROP SCHEMA public CASCADE`; os dados anteriores foram descartados conforme decisão do grupo.
 - As constraints de `CHECK` das entidades precisaram de identificadores entre aspas para funcionar no PostgreSQL.
-- O diretório `.venv` está versionado no Git, apesar de o `.gitignore` prever ambientes virtuais.
+- O diretório `.venv` foi removido do índice do Git e permanece apenas localmente.
 - A API foi validada com `flask run` e com Docker Compose, incluindo `/health`, CRUD, análises e exportação CSV em PostgreSQL.
-- O CI está configurado para PostgreSQL 16; a execução local equivalente passou com 15 testes.
+- O CI está configurado para PostgreSQL 16; a execução local equivalente passou com 16 testes.
 - O banco local contém os dados de demonstração do comando `seed-demo`.
 
 ## 11. Histórico de atualizações
@@ -213,3 +220,5 @@ O workflow `.github/workflows/ci.yml` configura PostgreSQL 16, valida a sintaxe,
 | 2026-10-30 | `5d729d0` | Adicionadas consultas filtradas, estatísticas, comparação, eventos extremos, sazonalidade, exportação CSV e seed de demonstração |
 | 2026-10-30 | `186876c` | Adicionados Dockerfile, docker-compose, `init.sql` e configuração de host/porta/debug por variáveis de ambiente; README atualizado |
 | 2026-10-30 | `8b9650b` | Testes migrados para PostgreSQL com schema isolado; adicionados testes de integração e CI com PostgreSQL 16 |
+| 2026-10-30 | `5df74f2` | Documentação dos testes PostgreSQL e do workflow de CI atualizada |
+| 2026-10-31 | — | Adicionados relacionamentos `relationship()` nas entidades, teste de relacionamentos ORM e remoção do `.venv` do índice do Git |

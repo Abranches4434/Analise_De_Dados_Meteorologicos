@@ -184,6 +184,7 @@ Erros são retornados como `{"erro": "mensagem"}` com status 400, 404, 409 ou 50
 ## Regras principais
 
 - Registros, localidades e thresholds são inativados, não excluídos fisicamente.
+- As entidades possuem relacionamentos 1:N explícitos com `relationship()`.
 - Análises consideram apenas registros ativos por padrão.
 - `MAXIMO` é atingido quando o valor é maior ou igual ao limiar; `MINIMO`, quando é menor
   ou igual.
